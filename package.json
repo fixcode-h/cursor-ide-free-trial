@@ -1,0 +1,124 @@
+{
+  "name": "ai-ide-free-trial",
+  "version": "1.1.6",
+  "main": "src/main/index.js",
+  "scripts": {
+    "start": "electron .",
+    "start:win": "chcp 65001>nul && electron .",
+    "dev": "cross-env NODE_ENV=development electron .",
+    "dev:win": "chcp 65001>nul && cross-env NODE_ENV=development electron .",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "node scripts/build.js",
+    "build:dir": "node scripts/build.js --dir"
+  },
+  "build": {
+    "appId": "org.trial.free.ide.ai",
+    "productName": "AI_IDE_Free_Trial",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "src/**/*",
+      "public/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "views",
+        "to": "views",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "scripts",
+        "to": "scripts",
+        "filter": [
+          "cursor.ps1",
+          "cursor-update.ps1"
+        ]
+      },
+      {
+        "from": "keys",
+        "to": "keys",
+        "filter": [
+          "public.pem"
+        ]
+      },
+      {
+        "from": "dist_public",
+        "to": "public",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "dist_server",
+        "to": "server",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "extensions",
+        "to": "extensions",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "dist_package.json",
+        "to": "package.json"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "public/assets/logo.png"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ]
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "AIIDEFreeTrial.exe"
+    },
+    "asar": true
+  },
+  "keywords": [],
+  "author": "豚鼠特攻",
+  "license": "ISC",
+  "description": "AI IDE 免费试用工具",
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8",
+    "javascript-obfuscator": "^4.1.1",
+    "nan": "^2.22.1",
+    "node-gyp": "^11.1.0",
+    "nodemon": "^3.0.3"
+  }
+}
