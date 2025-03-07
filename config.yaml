@@ -1,0 +1,51 @@
+server:
+  port: 3000
+  host: localhost
+auth:
+  token: ''
+proxy:
+  enabled: false
+  host: 127.0.0.1
+  port: 10808
+  protocol: socks5
+cloudflare:
+  proxy: false
+  apiToken: ''
+  zoneId: ''
+  emailForward: ''
+  virtualDomain: ''
+email:
+  proxy: false
+  type: publicApi
+  user: ''
+  pass: ''
+  tempmail:
+    preferredDomain: fexpost.com
+    customizeUsername: true
+    username: ''
+    pin: ''
+    lifetime: 2days
+  publicApi:
+    apiEndpoint: https://emailapi.goaiwork.online
+  smtp:
+    enabled: false
+    host: smtp.gmail.com
+    port: 465
+    secure: true
+  imap:
+    enabled: true
+    host: imap.gmail.com
+    port: 993
+    secure: true
+logging:
+  level: info
+  path: logs
+  maxSize: 10m
+  maxFiles: 5
+registration:
+  type: cursor
+  manual: false
+browser:
+  proxy: false
+  headless: false
+  checkFingerprint: false
