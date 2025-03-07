@@ -39,6 +39,7 @@ async function checkResponse(response) {
 // 统一请求处理
 async function request(url, options = {}) {
     try {
+        console.log(`Making request to: ${url}`);
         const response = await fetch(BASE_URL + url, {
             ...options,
             headers: {
@@ -48,8 +49,17 @@ async function request(url, options = {}) {
         });
 
         await checkResponse(response);
-        return await response.json();
+        const data = await response.json();
+        console.log(`Response from ${url}:`, data);
+        
+        // 检查API响应中的错误
+        if (!data.success && data.error) {
+            throw new Error(data.error);
+        }
+        
+        return data;
     } catch (error) {
+        console.error(`Request to ${url} failed:`, error);
         handleError(error);
     }
 }
@@ -124,4 +134,4 @@ window.API = {
     users: {
         info: () => http.get('/api/users/info')
     }
-}; 
+};
