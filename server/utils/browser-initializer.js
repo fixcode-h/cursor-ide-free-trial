@@ -59,7 +59,9 @@ class BrowserInitializer {
                         `--disable-extensions-except=${extensionPath}`,
                         `--load-extension=${extensionPath}`
                     ],
-                    customConfig: {},
+                    customConfig: {
+                        chromePath: this.config.browser.executablePath || undefined
+                    },
                     turnstile: true,
                     connectOption: {
                         defaultViewport: { width: 1920, height: 1080 }

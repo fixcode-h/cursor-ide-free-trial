@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const { fork } = require('child_process');
 const net = require('net');
@@ -207,7 +207,8 @@ async function createWindow() {
         autoHideMenuBar: true,
         webPreferences: {
             nodeIntegration: false,
-            contextIsolation: true
+            contextIsolation: true,
+            preload: path.join(__dirname, 'preload.js')
         }
     });
 
@@ -256,6 +257,9 @@ app.whenReady().then(async () => {
 
         // 2. 创建主窗口
         await createWindow();
+
+        // 3. 设置IPC通信
+        setupIPC();
     } catch (error) {
         console.error('Failed to initialize:', error);
         if (splashWindow && !splashWindow.isDestroyed()) {
@@ -281,4 +285,31 @@ app.on('activate', () => {
     if (mainWindow === null) {
         createWindow();
     }
-}); 
+});
+
+// 设置IPC通信
+function setupIPC() {
+    // 处理文件选择对话框
+    ipcMain.handle('select-file', async (event, options) => {
+        try {
+            const result = await dialog.showOpenDialog({
+                properties: ['openFile'],
+                filters: options.filters,
+                title: options.title
+            });
+
+            return {
+                success: !result.canceled && result.filePaths.length > 0,
+                data: result.filePaths[0] || null,
+                error: result.canceled ? '未选择文件' : null
+            };
+        } catch (error) {
+            console.error('File selection error:', error);
+            return {
+                success: false,
+                data: null,
+                error: error.message
+            };
+        }
+    });
+} 
