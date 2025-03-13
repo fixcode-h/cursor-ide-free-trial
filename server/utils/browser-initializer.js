@@ -56,8 +56,8 @@ class BrowserInitializer {
                         "--no-sandbox",
                         "--disable-blink-features=AutomationControlled",
                         "--disable-audio-output",
-                        `--disable-extensions-except=${extensionPath}`,
-                        `--load-extension=${extensionPath}`
+                        // `--disable-extensions-except=${extensionPath}`,
+                        // `--load-extension=${extensionPath}`
                     ],
                     customConfig: {
                         chromePath: this.config.browser.executablePath || undefined
@@ -86,10 +86,11 @@ class BrowserInitializer {
 
                 const { browser, page } = await connect(connectOptions);
 
-                // 注入指纹
-                logger.info('开始注入浏览器指纹...');
-                await this.configureExtensions(browser);
-                logger.info('浏览器指纹注入完成');
+                // TODO 暂时不在工具内做指纹变更动作，转为支持外部浏览器，包括指纹浏览器。
+                // // 注入指纹
+                // logger.info('开始注入浏览器指纹...');
+                // await this.configureExtensions(browser);
+                // logger.info('浏览器指纹注入完成');
                 
                 // 根据配置决定是否进行指纹检查
                 if (this.config.browser.checkFingerprint) {
