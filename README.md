@@ -1,178 +1,176 @@
 # AI IDE Free Trial
 
-[English Version](README_EN.md)
+AI IDE Free Trial is an intelligent integrated development environment (IDE) tool based on Electron, designed to provide AI-assisted programming experience for developers.
 
-AI IDE Free Trial 是一个基于 Electron 的智能集成开发环境（IDE）工具，旨在为开发者提供 AI 辅助编程体验。
+## Project Introduction
 
-## 项目介绍
+This project is a free trial version of the AI IDE tool, integrating various intelligent programming assistance features to help developers improve their programming efficiency. It supports multiple platforms including Windows, macOS, and Linux. The project consists of an Electron desktop application and a local server, providing complete IDE functionality and AI assistance services.
 
-本项目是一个免费试用版的 AI IDE 工具，集成了多种智能编程辅助功能，帮助开发者提高编程效率。支持 Windows、macOS 和 Linux 多个平台。该项目包含一个 Electron 桌面应用和一个本地服务器，提供完整的 IDE 功能和 AI 辅助服务。
+## Technology Stack
 
-## 技术栈
+### Desktop App
+- Electron v33.0.0: Cross-platform desktop application framework
+- Node.js: Runtime environment
+- JavaScript/TypeScript: Primary development languages
 
-### 桌面应用（Desktop App）
-- Electron v33.0.0：跨平台桌面应用开发框架
-- Node.js：运行时环境
-- JavaScript/TypeScript：主要开发语言
+### Local Server
+- Express.js: Web application framework
+- WebSocket: Real-time communication
+- EJS: Template engine
+- SQLite: Local data storage
+- Puppeteer: Browser automation
+- Axios: HTTP client
 
-### 本地服务器（Local Server）
-- Express.js：Web 应用框架
-- WebSocket：实时通信
-- EJS：模板引擎
-- SQLite：本地数据存储
-- Puppeteer：浏览器自动化
-- Axios：HTTP 客户端
+## Features
 
-## 功能特点
+- Cross-platform support (Windows, macOS, Linux)
+- AI-powered programming assistance
+- Modern user interface
+- Extensible plugin system
+- Real-time communication support (WebSocket)
+- Local data persistence
+- Email service integration
+- Browser automation capabilities
 
-- 跨平台支持（Windows、macOS、Linux）
-- AI 智能编程辅助
-- 现代化的用户界面
-- 可扩展的插件系统
-- 实时通信支持（WebSocket）
-- 本地数据持久化
-- 邮件服务集成
-- 浏览器自动化功能
+## Installation Guide
 
-## 安装说明
+### System Requirements
 
-### 系统要求
+- Windows 10 or higher
+- macOS 10.13 or higher
+- Linux (major distributions supported)
+- Node.js 14.0.0 or higher
 
-- Windows 10 或更高版本
-- macOS 10.13 或更高版本
-- Linux（支持主流发行版）
-- Node.js 14.0.0 或更高版本
+### Environment Setup
 
-### 环境配置
+1. Node.js Environment Configuration:
+   - Download Node.js runtime for your platform
+   - Root directory configuration:
+     - Windows: Name the Node.js environment folder as `node_win32`
+     - macOS: Name the Node.js environment folder as `node_darwin`
+     - Linux: Name the Node.js environment folder as `node_linux`
+   - Server directory configuration:
+     - Copy your current system's Node.js environment to the `server` directory, renamed as `node`
+     - Example: On Windows, copy `node_win32` to `server/node`
 
-1. Node.js 环境配置：
-   - 下载对应平台的 Node.js 运行环境
-   - 项目根目录配置：
-     - Windows: 将 Node.js 环境文件夹命名为 `node_win32`
-     - macOS: 将 Node.js 环境文件夹命名为 `node_darwin`
-     - Linux: 将 Node.js 环境文件夹命名为 `node_linux`
-   - 服务器目录配置：
-     - 将当前运行系统对应的 Node.js 环境复制到 `server` 目录下，统一命名为 `node`
-     - 例如：Windows 系统下，复制 `node_win32` 到 `server/node`
-
-2. 目录结构示例：
+2. Directory Structure Example:
    ```
-   项目根目录/
-   ├── node_win32/     # Windows Node.js 环境
-   ├── node_darwin/    # macOS Node.js 环境
-   ├── node_linux/     # Linux Node.js 环境
+   project_root/
+   ├── node_win32/     # Windows Node.js environment
+   ├── node_darwin/    # macOS Node.js environment
+   ├── node_linux/     # Linux Node.js environment
    └── server/
-       └── node/       # 当前系统的 Node.js 环境（用于调试）
+       └── node/       # Current system's Node.js environment (for debugging)
    ```
 
-### 安装步骤
+### Installation Steps
 
-1. 下载对应平台的安装包：
+1. Download the installation package for your platform:
    - Windows: AIIDEFreeTrial.exe
    - macOS: AI_IDE_Free_Trial.dmg
    - Linux: AI_IDE_Free_Trial.AppImage
 
-2. 运行安装程序：
-   - Windows：直接运行可执行文件
-   - macOS：打开 DMG 文件并拖动到应用程序文件夹
-   - Linux：赋予 AppImage 执行权限后运行
+2. Run the installer:
+   - Windows: Run the executable file directly
+   - macOS: Open the DMG file and drag to Applications folder
+   - Linux: Grant execute permission to the AppImage file and run
 
-### 开发环境搭建
+### Development Environment Setup
 
 ```bash
-# 克隆项目
-git clone [项目地址]
+# Clone the repository
+git clone [repository_url]
 
-# 安装主应用依赖
+# Install main application dependencies
 npm install
 
-# 安装服务器依赖
+# Install server dependencies
 cd server
 npm install
 cd ..
 
-# 启动开发环境
+# Start development environment
 npm run dev
 
-# Windows 环境下启动
+# Start on Windows
 npm run dev:win
 
-# 构建应用
+# Build application
 npm run build
 ```
 
-## 项目结构
+## Project Structure
 
 ```
 .
-├── src/            # 桌面应用源代码目录
-├── public/         # 静态资源
-├── views/          # 视图文件
-├── server/         # 本地服务器
-│   ├── api/        # API 路由
-│   ├── flows/      # 业务流程
-│   ├── utils/      # 工具函数
-│   ├── node/       # 当前系统的 Node.js 环境（调试用）
-│   ├── app.js      # 应用配置
-│   └── server.js   # 服务器入口
-├── scripts/        # 构建和工具脚本
-├── extensions/     # 插件系统
-├── release/        # 构建输出目录
-├── node_win32/     # Windows Node.js 环境
-├── node_darwin/    # macOS Node.js 环境
-└── node_linux/     # Linux Node.js 环境
+├── src/            # Desktop application source code
+├── public/         # Static resources
+├── views/          # View files
+├── server/         # Local server
+│   ├── api/        # API routes
+│   ├── flows/      # Business flows
+│   ├── utils/      # Utility functions
+│   ├── node/       # Current system's Node.js environment (for debugging)
+│   ├── app.js      # Application configuration
+│   └── server.js   # Server entry point
+├── scripts/        # Build and utility scripts
+├── extensions/     # Plugin system
+├── release/        # Build output directory
+├── node_win32/     # Windows Node.js environment
+├── node_darwin/    # macOS Node.js environment
+└── node_linux/     # Linux Node.js environment
 ```
 
-## 依赖的开源项目
+## Dependencies
 
-### 桌面应用
-- [Electron](https://www.electronjs.org/)：用于构建跨平台桌面应用
-- [Node.js](https://nodejs.org/)：JavaScript 运行时
-- [electron-builder](https://www.electron.build/)：Electron 应用打包工具
+### Desktop Application
+- [Electron](https://www.electronjs.org/): Cross-platform desktop application framework
+- [Node.js](https://nodejs.org/): JavaScript runtime
+- [electron-builder](https://www.electron.build/): Electron application packaging tool
 
-### 服务器
-- [Express](https://expressjs.com/)：Web 应用框架
-- [ws](https://github.com/websockets/ws)：WebSocket 客户端和服务器
-- [SQLite3](https://github.com/TryGhost/node-sqlite3)：SQLite 数据库
-- [Puppeteer](https://pptr.dev/)：浏览器自动化工具
-- [Nodemailer](https://nodemailer.com/)：邮件发送
-- [EJS](https://ejs.co/)：嵌入式 JavaScript 模板引擎
+### Server
+- [Express](https://expressjs.com/): Web application framework
+- [ws](https://github.com/websockets/ws): WebSocket client and server
+- [SQLite3](https://github.com/TryGhost/node-sqlite3): SQLite database
+- [Puppeteer](https://pptr.dev/): Browser automation tool
+- [Nodemailer](https://nodemailer.com/): Email sending
+- [EJS](https://ejs.co/): Embedded JavaScript templating
 
-## 配置说明
+## Configuration
 
-### Node.js 环境配置
-- 运行环境要求：Node.js 14.0.0 或更高版本
-- 开发调试时需确保 `server/node` 目录包含当前系统对应的 Node.js 环境
-- 生产环境会根据用户系统自动选择对应的 Node.js 环境（node_win32/node_darwin/node_linux）
+### Node.js Environment Configuration
+- Runtime requirement: Node.js 14.0.0 or higher
+- Ensure `server/node` directory contains the Node.js environment for your current system during development
+- Production environment automatically selects the appropriate Node.js environment (node_win32/node_darwin/node_linux)
 
-### 服务器配置
-- 默认端口：3000（可通过启动参数修改）
-- 开发环境：使用 APP_ROOT 环境变量
-- 生产环境：使用 RES_PATH 环境变量
+### Server Configuration
+- Default port: 3000 (can be modified via startup parameters)
+- Development environment: Uses APP_ROOT environment variable
+- Production environment: Uses RES_PATH environment variable
 
-## 贡献指南
+## Contributing
 
-欢迎提交 Issue 和 Pull Request 来帮助改进项目。
+Issues and Pull Requests are welcome to help improve the project.
 
-## 许可证
+## License
 
-本项目基于 ISC 许可证开源。
+This project is licensed under the ISC License.
 
-## 感谢
+## Acknowledgments
 
-感谢以下开源项目和社区的贡献：
+Thanks to the following open source projects and communities:
 
-- Electron 社区
-- Node.js 社区
-- Express.js 社区
-- SQLite 社区
-- 所有项目贡献者
+- Electron Community
+- Node.js Community
+- Express.js Community
+- SQLite Community
+- All project contributors
 
-## 作者
+## Author
 
-豚鼠特攻
+豚鼠特攻 (Guinea Pig Special Forces)
 
-## 版本历史
+## Version History
 
-- 桌面应用：v1.1.6
-- 服务器：v1.1.2 
+- Desktop App: v1.1.6
+- Server: v1.1.2 
