@@ -1,15 +1,15 @@
-# 🚀 AI IDE Free Trial
+# 🚀 Cursor IDE Free Trial
 
 [中文版](README_CN.md)
 
-🎯 AI IDE Free Trial is a utility tool designed to help users conveniently try Cursor IDE's trial version. This tool primarily focuses on resolving machine code verification issues and provides streamlined email and account management features.
+🎯 Cursor IDE Free Trial is a utility tool designed to help users conveniently experience the trial version of Cursor IDE. This tool primarily addresses machine code verification issues during the trial process and provides streamlined email and account management features.
 
 ## ✨ Project Overview
 
 This is an Electron-based utility tool focused on optimizing the Cursor IDE trial experience. Main features include:
 - 🔑 Resolving machine code verification issues
-- 📧 Providing convenient email service integration
-- 👤 Simplifying account management
+- 📧 Providing convenient email service functionality
+- 👤 Simplifying account management process
 - ⚡ Optimizing trial experience
 
 ⚠️ **Important Note:** If you find Cursor IDE meets your needs during the trial period, we strongly encourage you to purchase the official version for complete service experience.
@@ -39,7 +39,7 @@ This is an Electron-based utility tool focused on optimizing the Cursor IDE tria
 - 📨 Email service integration
 - 🎨 Modern user interface
 - 👥 Account management system
-- 🔄 Real-time communication
+- 🔄 Real-time communication support
 - 💾 Local data persistence
 - 🤖 Browser automation features
 
@@ -100,28 +100,6 @@ This is an Electron-based utility tool focused on optimizing the Cursor IDE tria
      - **👤 Account Registration**: Register account using the bound email
      - **🔑 Account Login**: Login with registered account and switch IDE account
 
-### Environment Setup
-
-1. Node.js Environment Configuration:
-   - Download Node.js runtime for your platform
-   - Root directory configuration:
-     - Windows: Name Node.js environment folder as `node_win32`
-     - macOS: Name Node.js environment folder as `node_darwin`
-     - Linux: Name Node.js environment folder as `node_linux`
-   - Server directory configuration:
-     - Copy current system's Node.js environment to `server` directory, rename as `node`
-     - Example: On Windows, copy `node_win32` to `server/node`
-
-2. Directory Structure Example:
-   ```
-   root/
-   ├── node_win32/     # Windows Node.js environment
-   ├── node_darwin/    # macOS Node.js environment
-   ├── node_linux/     # Linux Node.js environment
-   └── server/
-       └── node/       # Current system's Node.js environment (for debugging)
-   ```
-
 ### Development Setup
 
 ```bash
@@ -155,6 +133,16 @@ Node.js Environment Configuration for Packaging:
    - Server directory configuration:
      - Copy current system's Node.js environment to `server` directory, rename as `node`
      - Example: On Windows, copy `node_win32` to `server/node`
+
+Directory Structure Example:
+   ```
+   root/
+   ├── node_win32/     # Windows Node.js environment
+   ├── node_darwin/    # macOS Node.js environment
+   ├── node_linux/     # Linux Node.js environment
+   └── server/
+       └── node/       # Current system's Node.js environment (for debugging)
+   ```
 
 ## Project Structure
 

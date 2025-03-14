@@ -1,4 +1,4 @@
-# 🚀 AI IDE Free Trial
+# 🚀 Cursor IDE Free Trial
 
 [English Version](README.md)
 
