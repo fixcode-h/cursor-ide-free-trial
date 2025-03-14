@@ -210,18 +210,93 @@ async function getDiskSerial() {
     }
 }
 
-// 获取第一个物理网卡的MAC地址
-function getPrimaryMAC() {
+// 获取所有物理网卡的MAC地址
+function getPhysicalMACs() {
     const interfaces = os.networkInterfaces();
+    const macs = new Set();
+    
+    // 定义物理网卡的特征
+    const physicalPatterns = [
+        /^eth\d+$/,          // Linux 经典网卡: eth0, eth1
+        /^en[ps]\d+s\d+$/,   // Linux 可预测命名: enp0s3
+        /^em\d+$/,           // Linux 嵌入式网卡: em0, em1
+        /^eno\d+$/,          // Linux 板载网卡: eno1, eno2
+        /^以太网/,           // Windows 中文系统
+        /^Ethernet/,         // Windows 英文系统
+        /^Wi-?Fi/,          // WiFi接口
+        /^WLAN/             // 无线网卡
+    ];
+
+    // 定义虚拟网卡的特征
+    const virtualPatterns = [
+        /^vmware/i,
+        /^vm\d+$/i,
+        /^virtual/i,
+        /^tap\d*/i,
+        /^tun\d*/i,
+        /^docker/i,
+        /^veth/i,
+        /^br-/i,
+        /^bridge/i,
+        /^vnet/i,
+        /^vbox/i,
+        /^vpn/i,
+        /^ppp/i,
+        /^lo$/,             // 回环接口
+        /^null$/,
+        /^bond\d+$/,        // 网卡绑定接口
+        /^team\d+$/,        // 网卡组接口
+        /^OpenVPN/i,
+        /^TAP-/i
+    ];
+
     for (const name of Object.keys(interfaces)) {
+        // 检查是否是虚拟网卡
+        const isVirtual = virtualPatterns.some(pattern => pattern.test(name));
+        if (isVirtual) {
+            continue;
+        }
+
+        // 检查是否是物理网卡
+        const isPhysical = physicalPatterns.some(pattern => pattern.test(name));
+        if (!isPhysical) {
+            continue;
+        }
+
         const interface = interfaces[name];
         for (const info of interface) {
-            if (!info.internal && info.mac !== '00:00:00:00:00:00') {
-                return info.mac;
+            // 只获取非内部的IPv4地址对应的MAC地址
+            if (!info.internal && 
+                info.mac !== '00:00:00:00:00:00' && 
+                info.family === 'IPv4' &&
+                !/^169\.254\./.test(info.address)) { // 排除自动配置的IP地址
+                macs.add(info.mac.toUpperCase()); // 统一使用大写形式
             }
         }
     }
-    return '';
+
+    // 如果没有找到任何物理网卡，尝试使用第一个非虚拟网卡作为备选
+    if (macs.size === 0) {
+        for (const name of Object.keys(interfaces)) {
+            const isVirtual = virtualPatterns.some(pattern => pattern.test(name));
+            if (!isVirtual) {
+                const interface = interfaces[name];
+                for (const info of interface) {
+                    if (!info.internal && 
+                        info.mac !== '00:00:00:00:00:00' && 
+                        info.family === 'IPv4' &&
+                        !/^169\.254\./.test(info.address)) {
+                        macs.add(info.mac.toUpperCase());
+                        break;
+                    }
+                }
+                if (macs.size > 0) break;
+            }
+        }
+    }
+
+    // 将MAC地址转换为数组并排序，确保顺序一致
+    return Array.from(macs).sort().join('|');
 }
 
 // 生成机器码
@@ -233,7 +308,8 @@ async function generateMachineCode() {
             getMotherboardSerial(),
             getDiskSerial()
         ]);
-        const macAddress = getPrimaryMAC();
+
+        const macAddresses = getPhysicalMACs();
         const osInfo = `${os.platform()}-${os.release()}`;
 
         // 组合所有硬件信息
@@ -241,7 +317,7 @@ async function generateMachineCode() {
             cpuId,
             motherboardSerial,
             diskSerial,
-            macAddress,
+            macAddresses,
             osInfo
         ].join('|');
 

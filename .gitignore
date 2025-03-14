@@ -4,6 +4,9 @@ node_win32/
 data/
 server/node_modules/
 server/node/
+dist_server/
+dist_public/
+dist_package.json
 package-lock.json
 yarn.lock
 server/package-lock.json
