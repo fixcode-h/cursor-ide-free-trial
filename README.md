@@ -128,7 +128,19 @@ npm install
 cd server
 npm install
 cd ..
+```
 
+Node.js Environment Configuration for Packaging:
+   - Download Node.js runtime for your platform
+   - Root directory configuration:
+     - Windows: Name Node.js environment folder as `node_win32`
+     - macOS: Name Node.js environment folder as `node_darwin`
+     - Linux: Name Node.js environment folder as `node_linux`
+   - Server directory configuration:
+     - Copy current system's Node.js environment to `server` directory, rename as `node`
+     - Example: On Windows, copy `node_win32` to `server/node`
+
+```bash
 # Start development environment
 npm run dev
 

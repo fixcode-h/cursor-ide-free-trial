@@ -94,28 +94,6 @@ AI IDE Free Trial 是一个辅助工具，旨在帮助用户更方便地体验 C
      - **账号注册**：使用绑定的邮箱进行账号注册
      - **账号登录**：使用注册完成的账号进行登录，并切换IDE账号
 
-### 环境配置
-
-1. Node.js 环境配置：
-   - 下载对应平台的 Node.js 运行环境
-   - 项目根目录配置：
-     - Windows: 将 Node.js 环境文件夹命名为 `node_win32`
-     - macOS: 将 Node.js 环境文件夹命名为 `node_darwin`
-     - Linux: 将 Node.js 环境文件夹命名为 `node_linux`
-   - 服务器目录配置：
-     - 将当前运行系统对应的 Node.js 环境复制到 `server` 目录下，统一命名为 `node`
-     - 例如：Windows 系统下，复制 `node_win32` 到 `server/node`
-
-2. 目录结构示例：
-   ```
-   项目根目录/
-   ├── node_win32/     # Windows Node.js 环境
-   ├── node_darwin/    # macOS Node.js 环境
-   ├── node_linux/     # Linux Node.js 环境
-   └── server/
-       └── node/       # 当前系统的 Node.js 环境（用于调试）
-   ```
-
 ### 开发环境搭建
 
 ```bash
@@ -129,7 +107,19 @@ npm install
 cd server
 npm install
 cd ..
+```
 
+用于打包的Node.js 环境配置：
+   - 下载对应平台的 Node.js 运行环境
+   - 项目根目录配置：
+     - Windows: 将 Node.js 环境文件夹命名为 `node_win32`
+     - macOS: 将 Node.js 环境文件夹命名为 `node_darwin`
+     - Linux: 将 Node.js 环境文件夹命名为 `node_linux`
+   - 服务器目录配置：
+     - 将当前运行系统对应的 Node.js 环境复制到 `server` 目录下，统一命名为 `node`
+     - 例如：Windows 系统下，复制 `node_win32` 到 `server/node`
+
+```bash
 # 启动开发环境
 npm run dev
 
@@ -139,6 +129,16 @@ npm run dev:win
 # 构建应用
 npm run build
 ```
+
+目录结构示例：
+   ```
+   项目根目录/
+   ├── node_win32/     # Windows Node.js 环境
+   ├── node_darwin/    # macOS Node.js 环境
+   ├── node_linux/     # Linux Node.js 环境
+   └── server/
+       └── node/       # 当前系统的 Node.js 环境（用于调试）
+   ```
 
 ## 项目结构
 
