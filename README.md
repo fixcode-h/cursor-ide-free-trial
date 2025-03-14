@@ -1,12 +1,25 @@
 # AI IDE Free Trial
 
-AI IDE Free Trial is an intelligent integrated development environment (IDE) tool based on Electron, designed to provide AI-assisted programming experience for developers.
+[中文版](README_CN.md)
 
-## Project Introduction
+AI IDE Free Trial is a utility tool designed to help users conveniently try Cursor IDE's trial version. This tool primarily focuses on resolving machine code verification issues and provides streamlined email and account management features.
 
-This project is a free trial version of the AI IDE tool, integrating various intelligent programming assistance features to help developers improve their programming efficiency. It supports multiple platforms including Windows, macOS, and Linux. The project consists of an Electron desktop application and a local server, providing complete IDE functionality and AI assistance services.
+## Project Overview
 
-## Technology Stack
+This is an Electron-based utility tool focused on optimizing the Cursor IDE trial experience. Main features include:
+- Resolving machine code verification issues
+- Providing convenient email service integration
+- Simplifying account management
+- Optimizing trial experience
+
+**Important Note:** If you find Cursor IDE meets your needs during the trial period, we strongly encourage you to purchase the official version for complete service experience.
+
+**Platform Support:**
+- Windows: Fully supported
+- macOS: Under development
+- Linux: Under development
+
+## Tech Stack
 
 ### Desktop App
 - Electron v33.0.0: Cross-platform desktop application framework
@@ -23,39 +36,78 @@ This project is a free trial version of the AI IDE tool, integrating various int
 
 ## Features
 
-- Cross-platform support (Windows, macOS, Linux)
-- AI-powered programming assistance
-- Modern user interface
-- Extensible plugin system
-- Real-time communication support (WebSocket)
-- Local data persistence
 - Email service integration
-- Browser automation capabilities
+- Modern user interface
+- Account management system
+- Real-time communication (WebSocket)
+- Local data persistence
+- Browser automation features
+- Streamlined trial experience
 
 ## Installation Guide
 
 ### System Requirements
 
-- Windows 10 or higher
-- macOS 10.13 or higher
-- Linux (major distributions supported)
-- Node.js 14.0.0 or higher
+- Windows 10 or higher (Currently Windows-only)
+
+**Note:** Support for macOS and Linux platforms is under development
+
+### Installation Steps
+
+1. Download:
+   - Download the latest version zip package from the release page (e.g., `v1.2.0-win64.zip`)
+
+2. Installation:
+   - Extract the downloaded zip package to your desired directory
+   - Run `AI_IDE_Free_Trial.exe` with administrator privileges
+
+### Usage Guide
+
+1. Basic Configuration:
+   After running the software, go to the "Settings" tab and configure the following:
+
+   **Proxy Settings:**
+   - Check "Enable Proxy"
+   - Fill in your proxy host and port information
+
+   **Email Settings:**
+   - Check "Use Proxy"
+   - Select "Public API Pool" as type
+   - Set API endpoint to: `https://emailapi.goaiwork.online`
+   - Keep other email settings as default
+
+   **Registration Settings:**
+   - Select "cursor" as registration type
+
+   **Browser Settings:**
+   - Check "Enable Proxy"
+   - Recommended to enable "Check Browser Fingerprint"
+   - Not recommended to enable "Headless Mode" (may cause verification code issues)
+   - If you have a fingerprint browser, you can specify its executable path
+
+2. Usage Flow:
+   - Click "Save Settings" after configuration
+   - You can use the "One-Click Account Switch" tab for quick account switching
+   - Or perform operations step by step in other tabs:
+     - **Email Binding**: Generate new email account and bind email routing
+     - **Account Registration**: Register account using the bound email
+     - **Account Login**: Login with registered account and switch IDE account
 
 ### Environment Setup
 
 1. Node.js Environment Configuration:
    - Download Node.js runtime for your platform
    - Root directory configuration:
-     - Windows: Name the Node.js environment folder as `node_win32`
-     - macOS: Name the Node.js environment folder as `node_darwin`
-     - Linux: Name the Node.js environment folder as `node_linux`
+     - Windows: Name Node.js environment folder as `node_win32`
+     - macOS: Name Node.js environment folder as `node_darwin`
+     - Linux: Name Node.js environment folder as `node_linux`
    - Server directory configuration:
-     - Copy your current system's Node.js environment to the `server` directory, renamed as `node`
+     - Copy current system's Node.js environment to `server` directory, rename as `node`
      - Example: On Windows, copy `node_win32` to `server/node`
 
 2. Directory Structure Example:
    ```
-   project_root/
+   root/
    ├── node_win32/     # Windows Node.js environment
    ├── node_darwin/    # macOS Node.js environment
    ├── node_linux/     # Linux Node.js environment
@@ -63,25 +115,13 @@ This project is a free trial version of the AI IDE tool, integrating various int
        └── node/       # Current system's Node.js environment (for debugging)
    ```
 
-### Installation Steps
-
-1. Download the installation package for your platform:
-   - Windows: AIIDEFreeTrial.exe
-   - macOS: AI_IDE_Free_Trial.dmg
-   - Linux: AI_IDE_Free_Trial.AppImage
-
-2. Run the installer:
-   - Windows: Run the executable file directly
-   - macOS: Open the DMG file and drag to Applications folder
-   - Linux: Grant execute permission to the AppImage file and run
-
-### Development Environment Setup
+### Development Setup
 
 ```bash
 # Clone the repository
-git clone [repository_url]
+git clone [repository URL]
 
-# Install main application dependencies
+# Install main app dependencies
 npm install
 
 # Install server dependencies
@@ -92,10 +132,10 @@ cd ..
 # Start development environment
 npm run dev
 
-# Start on Windows
+# Start in Windows environment
 npm run dev:win
 
-# Build application
+# Build the application
 npm run build
 ```
 
@@ -103,15 +143,15 @@ npm run build
 
 ```
 .
-├── src/            # Desktop application source code
+├── src/            # Desktop app source code
 ├── public/         # Static resources
 ├── views/          # View files
 ├── server/         # Local server
 │   ├── api/        # API routes
-│   ├── flows/      # Business flows
+│   ├── flows/      # Business logic
 │   ├── utils/      # Utility functions
 │   ├── node/       # Current system's Node.js environment (for debugging)
-│   ├── app.js      # Application configuration
+│   ├── app.js      # App configuration
 │   └── server.js   # Server entry point
 ├── scripts/        # Build and utility scripts
 ├── extensions/     # Plugin system
@@ -138,13 +178,13 @@ npm run build
 
 ## Configuration
 
-### Node.js Environment Configuration
+### Node.js Environment
 - Runtime requirement: Node.js 14.0.0 or higher
-- Ensure `server/node` directory contains the Node.js environment for your current system during development
-- Production environment automatically selects the appropriate Node.js environment (node_win32/node_darwin/node_linux)
+- For development debugging, ensure `server/node` contains current system's Node.js environment
+- Production environment automatically selects corresponding Node.js environment (node_win32/node_darwin/node_linux)
 
 ### Server Configuration
-- Default port: 3000 (can be modified via startup parameters)
+- Default port: 3000 (modifiable via startup parameters)
 - Development environment: Uses APP_ROOT environment variable
 - Production environment: Uses RES_PATH environment variable
 
@@ -154,21 +194,21 @@ Issues and Pull Requests are welcome to help improve the project.
 
 ## License
 
-This project is licensed under the ISC License.
+This project is open-sourced under the ISC License.
 
 ## Acknowledgments
 
-Thanks to the following open source projects and communities:
+Thanks to the following open-source projects and communities:
 
-- Electron Community
-- Node.js Community
-- Express.js Community
-- SQLite Community
+- Electron community
+- Node.js community
+- Express.js community
+- SQLite community
 - All project contributors
 
 ## Author
 
-豚鼠特攻 (Guinea Pig Special Forces)
+Guinea Pig Special Forces (豚鼠特攻)
 
 ## Version History
 
