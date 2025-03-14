@@ -89,7 +89,9 @@
    - 获取您的机器码
    - 通过以下方式之一申请授权：
      - Discord: [加入我们的Discord社区](https://discord.gg/wTjdGqNP)
-     - WeChat: 扫描加群二维码 (`doc/wechat.png`)
+     - 微信: 扫码加入用户群
+       
+       ![微信用户群](doc/wechat.png)
    - 提供机器码给管理员，等待授权
 
 3. 🔄 使用流程：

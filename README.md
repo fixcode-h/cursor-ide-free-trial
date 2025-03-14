@@ -89,7 +89,9 @@ This is an Electron-based utility tool focused on optimizing the Cursor IDE tria
    - Get your machine code
    - Apply for authorization through one of the following methods:
      - Discord: [Join our Discord community](https://discord.gg/wTjdGqNP)
-     - WeChat: Scan the group QR code (`doc/wechat.png`)
+     - WeChat: Join our WeChat group
+       
+       ![WeChat Group](doc/wechat.png)
    - Provide your machine code to administrators and wait for authorization
 
 3. 🔄 Usage Flow:
