@@ -96,6 +96,9 @@ function displayAccounts(accounts) {
                             <i class="bi bi-key"></i> 复制密码
                         </a></li>
                         <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item edit-account-btn" href="#" data-account='${JSON.stringify(account)}'>
+                            <i class="bi bi-pencil"></i> 编辑账号
+                        </a></li>
                         <li><a class="dropdown-item account-register-btn" href="#" 
                             data-email="${email}" 
                             data-password="${password}"
@@ -266,6 +269,21 @@ function displayAccounts(accounts) {
             }
         });
     });
+
+    // 添加编辑账号按钮事件监听
+    document.querySelectorAll('.edit-account-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            const target = e.target.closest('.edit-account-btn');
+            try {
+                const accountData = JSON.parse(target.dataset.account);
+                editAccount(accountData);
+            } catch (error) {
+                console.error('Error parsing account data:', error);
+                appendToConsole('error', '编辑账号失败：数据解析错误');
+            }
+        });
+    });
 }
 
 // 添加通用复制函数
@@ -366,4 +384,117 @@ document.addEventListener('DOMContentLoaded', () => {
             createAccounts(count);
         });
     }
-}); 
+});
+
+// 初始化模态框
+const editAccountModal = new bootstrap.Modal(document.getElementById('editAccountModal'));
+const addManualAccountModal = new bootstrap.Modal(document.getElementById('addManualAccountModal'));
+
+// 编辑账号
+function editAccount(account) {
+    document.getElementById('editAccountOriginalEmail').value = account.email;
+    document.getElementById('editAccountUsername').value = account.username || '';
+    document.getElementById('editAccountEmail').value = account.email;
+    document.getElementById('editAccountPassword').value = '';
+    document.getElementById('editAccountFirstName').value = account.firstname || '';
+    document.getElementById('editAccountLastName').value = account.lastname || '';
+    document.getElementById('editAccountStatus').value = account.status || 'CREATED';
+    document.getElementById('editAccountVerificationCode').value = account.verificationCode || '';
+    editAccountModal.show();
+}
+
+// 保存编辑的账号
+document.getElementById('saveEditAccount').addEventListener('click', async () => {
+    const originalEmail = document.getElementById('editAccountOriginalEmail').value;
+    const updateData = {
+        username: document.getElementById('editAccountUsername').value,
+        email: document.getElementById('editAccountEmail').value,
+        firstname: document.getElementById('editAccountFirstName').value,
+        lastname: document.getElementById('editAccountLastName').value,
+        status: document.getElementById('editAccountStatus').value,
+        verificationCode: document.getElementById('editAccountVerificationCode').value
+    };
+
+    // 只有当密码字段不为空时才更新密码
+    const password = document.getElementById('editAccountPassword').value;
+    if (password) {
+        updateData.password = password;
+    }
+
+    try {
+        const response = await http.put(`/api/accounts/${originalEmail}`, updateData);
+
+        if (response.success) {
+            appendToConsole('success', '账号信息已更新');
+            editAccountModal.hide();
+            fetchAccounts(); // 刷新账号列表
+        } else {
+            appendToConsole('error', response.error || '更新失败');
+        }
+    } catch (error) {
+        appendToConsole('error', error.message || '更新失败');
+    }
+});
+
+// 手动添加账号
+document.getElementById('addManualAccount').addEventListener('click', () => {
+    document.getElementById('manualAccountUsername').value = '';
+    document.getElementById('manualAccountEmail').value = '';
+    document.getElementById('manualAccountPassword').value = '';
+    document.getElementById('manualAccountFirstName').value = '';
+    document.getElementById('manualAccountLastName').value = '';
+    document.getElementById('manualAccountStatus').value = 'CREATED';
+    document.getElementById('manualAccountVerificationCode').value = '';
+    addManualAccountModal.show();
+});
+
+// 保存手动添加的账号
+document.getElementById('saveManualAccount').addEventListener('click', async () => {
+    const accountData = {
+        username: document.getElementById('manualAccountUsername').value,
+        email: document.getElementById('manualAccountEmail').value,
+        password: document.getElementById('manualAccountPassword').value,
+        firstname: document.getElementById('manualAccountFirstName').value,
+        lastname: document.getElementById('manualAccountLastName').value,
+        status: document.getElementById('manualAccountStatus').value,
+        verificationCode: document.getElementById('manualAccountVerificationCode').value
+    };
+
+    try {
+        const response = await http.post('/api/accounts/manual', accountData);
+
+        if (response.success) {
+            appendToConsole('success', '账号添加成功');
+            addManualAccountModal.hide();
+            fetchAccounts(); // 刷新账号列表
+        } else {
+            appendToConsole('error', response.error || '添加失败');
+        }
+    } catch (error) {
+        appendToConsole('error', error.message || '添加失败');
+    }
+});
+
+// 修改渲染账号列表的函数
+function renderAccounts(accounts) {
+    const tbody = document.getElementById('accountsTableBody');
+    tbody.innerHTML = accounts.map(account => `
+        <tr>
+            <td>${account.email}</td>
+            <td>${account.password}</td>
+            <td>${getStatusBadge(account.status)}</td>
+            <td>${formatDate(account.createdAt)}</td>
+            <td>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                        操作
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" onclick="editAccount(${JSON.stringify(account)})">编辑账号</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="deleteAccount('${account.email}')">删除账号</a></li>
+                    </ul>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}

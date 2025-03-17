@@ -223,4 +223,134 @@ router.patch('/:username/status', async (req, res) => {
     }
 });
 
+// 更新账号信息
+router.put('/:email', async (req, res) => {
+    try {
+        const { email } = req.params;
+        const {
+            username,
+            newEmail,
+            password,
+            firstname,
+            lastname,
+            status,
+            verificationCode
+        } = req.body;
+        
+        const accounts = await accountDataHandler.readRecords();
+        const accountIndex = accounts.findIndex(a => a.email === email);
+        
+        if (accountIndex === -1) {
+            return res.status(404).json({ 
+                success: false, 
+                error: '账号不存在' 
+            });
+        }
+
+        // 验证状态是否有效
+        if (status && !Object.values(AccountDataHandler.AccountStatus).includes(status)) {
+            return res.status(400).json({
+                success: false,
+                error: '无效的账号状态'
+            });
+        }
+
+        // 构建更新数据
+        const updateData = {
+            updatedAt: new Date().toISOString()
+        };
+
+        // 如果提供了新邮箱，更新邮箱
+        if (newEmail && newEmail !== email) {
+            updateData.email = newEmail;
+        }
+
+        // 更新其他字段
+        if (username !== undefined) updateData.username = username;
+        if (password !== undefined) updateData.password = password;
+        if (firstname !== undefined) updateData.firstname = firstname;
+        if (lastname !== undefined) updateData.lastname = lastname;
+        if (status !== undefined) updateData.status = status;
+        if (verificationCode !== undefined) updateData.verificationCode = verificationCode;
+
+        // 更新记录
+        await accountDataHandler.updateRecord(email, updateData);
+        
+        logger.info(`账号 ${email} 信息已更新`);
+        res.json({ success: true, message: '账号信息已更新' });
+    } catch (error) {
+        logger.error('更新账号信息失败:', error);
+        res.status(500).json({ success: false, error: '更新账号信息失败' });
+    }
+});
+
+// 手动添加账号
+router.post('/manual', async (req, res) => {
+    try {
+        const {
+            username,
+            email,
+            password,
+            firstname,
+            lastname,
+            status,
+            verificationCode
+        } = req.body;
+        
+        // 验证必填字段
+        if (!email || !password || !username) {
+            return res.status(400).json({
+                success: false,
+                error: '邮箱、密码和用户名为必填项'
+            });
+        }
+
+        // 验证状态是否有效
+        if (status && !Object.values(AccountDataHandler.AccountStatus).includes(status)) {
+            return res.status(400).json({
+                success: false,
+                error: '无效的账号状态'
+            });
+        }
+
+        // 检查邮箱是否已存在
+        const accounts = await accountDataHandler.readRecords();
+        if (accounts.some(a => a.email === email)) {
+            return res.status(400).json({
+                success: false,
+                error: '该邮箱已存在'
+            });
+        }
+
+        // 创建新记录
+        const newRecord = {
+            username,
+            email,
+            password,
+            firstname,
+            lastname,
+            status: status || AccountDataHandler.AccountStatus.CREATED,
+            verificationCode,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+
+        await accountDataHandler.appendRecord(newRecord);
+        
+        logger.info('手动添加账号成功:', email);
+        res.json({ 
+            success: true, 
+            data: newRecord,
+            message: '账号添加成功' 
+        });
+    } catch (error) {
+        logger.error('手动添加账号失败:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: '手动添加账号失败',
+            message: error.message 
+        });
+    }
+});
+
 module.exports = router; 
