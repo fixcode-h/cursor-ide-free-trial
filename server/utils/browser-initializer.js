@@ -25,7 +25,7 @@ function getExtensionsDir() {
 const BROWSER_CONFIG = {
     MAX_RETRIES: 3,
     RETRY_DELAY: 5000, // 5 seconds
-    MIN_TRUST_SCORE: 50,
+    MIN_TRUST_SCORE: 10,
     MAX_HEADLESS_PERCENTAGE: 30
 };
 
@@ -55,13 +55,9 @@ class BrowserInitializer {
                     args: [
                         "--no-sandbox",
                         "--disable-blink-features=AutomationControlled",
-                        "--disable-audio-output",
-                        // `--disable-extensions-except=${extensionPath}`,
-                        // `--load-extension=${extensionPath}`
+                        "--disable-audio-output"
                     ],
-                    customConfig: {
-                        chromePath: this.config.browser.executablePath || undefined
-                    },
+                    customConfig: {},
                     turnstile: true,
                     connectOption: {
                         defaultViewport: { width: 1920, height: 1080 }
@@ -69,6 +65,12 @@ class BrowserInitializer {
                     disableXvfb: false,
                     ignoreAllFlags: false
                 };
+
+                // 添加Chrome路径配置
+                if (this.config.browser.executablePath && this.config.browser.executablePath !== '') {
+                    connectOptions.customConfig.chromePath = this.config.browser.executablePath;
+                    logger.info('Chrome路径配置完成');
+                }
 
                 // 添加代理配置
                 if (this.config.proxy.enabled && this.config.browser.proxy) {
@@ -81,16 +83,15 @@ class BrowserInitializer {
                     connectOptions.args.push(`--proxy-server=${proxyUrl}`);
                     logger.info('代理服务器配置完成');
                 }
+
+                // 添加指纹配置
+                if (this.config.browser.fingerprintRandom && this.config.browser.executablePath && this.config.browser.executablePath !== '') {
+                    connectOptions.args.push(`--fingerprint=${Math.floor(Math.random() * 4200000000)}`);
+                    logger.info('指纹参数配置完成');
+                }
                 
                 logger.info('正在启动浏览器...');
-
                 const { browser, page } = await connect(connectOptions);
-
-                // TODO 暂时不在工具内做指纹变更动作，转为支持外部浏览器，包括指纹浏览器。
-                // // 注入指纹
-                // logger.info('开始注入浏览器指纹...');
-                // await this.configureExtensions(browser);
-                // logger.info('浏览器指纹注入完成');
                 
                 // 根据配置决定是否进行指纹检查
                 if (this.config.browser.checkFingerprint) {
@@ -220,7 +221,6 @@ class BrowserInitializer {
                             'WebDriver': testResults.find(r => r.name.includes('WebDriver'))?.passed,
                             'Chrome': testResults.find(r => r.name.includes('Chrome'))?.passed,
                             'UserAgent': testResults.find(r => r.name.includes('User Agent'))?.passed,
-                            'WebGL': testResults.find(r => r.name.includes('WebGL Vendor'))?.passed
                         };
 
                         return {
