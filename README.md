@@ -2,22 +2,97 @@
 
 [中文版](README_CN.md)
 
+![Cursor IDE Free Trial Screenshot](doc/images/screenshot.png)
+
 🎯 Cursor IDE Free Trial is a utility tool designed to help users conveniently experience the trial version of Cursor IDE. This tool primarily addresses machine code verification issues during the trial process and provides streamlined email and account management features.
 
-## ✨ Project Overview
+## ✨ Project Introduction
 
-This is an Electron-based utility tool focused on optimizing the Cursor IDE trial experience. Main features include:
-- 🔑 Resolving machine code verification issues
-- 📧 Providing convenient email service functionality
-- 👤 Simplifying account management process
-- ⚡ Optimizing trial experience
+This project is an Electron-based auxiliary tool focused on optimizing the trial experience of Cursor IDE. Main features include:
+- 🔑 Resolve machine code verification issues
+- 📧 Provide convenient email management functionality
+- 👤 Simplify account management process
+- ⚡ Optimize trial experience
 
-⚠️ **Important Note:** If you find Cursor IDE meets your needs during the trial period, we strongly encourage you to purchase the official version for complete service experience.
+⚠️ **Important Note:** If you find Cursor IDE meets your needs during the trial period, we strongly recommend purchasing the official version for a complete service experience.
 
 🖥️ **Platform Support:**
 - ✅ Windows: Fully supported
 - 🚧 macOS: Under development
 - 🚧 Linux: Under development
+
+## 🛠️ Tech Stack
+
+### 🖥️ Desktop App
+- ⚛️ Electron v33.0.0: Cross-platform desktop application development framework
+- 🟢 Node.js: Runtime environment
+- 📝 JavaScript/TypeScript: Main development language
+
+### 🔧 Local Server
+- 🌐 Express.js: Web application framework
+- 🔄 WebSocket: Real-time communication
+- 📄 EJS: Template engine
+- 💾 SQLite: Local data storage
+- 🤖 Puppeteer: Browser automation
+- 🌍 Axios: HTTP client
+
+## 💫 Features
+
+- 📨 Email service integration
+- 🎨 Modern user interface
+- 👥 Account management system
+- 🔄 Real-time communication support
+- 💾 Local data persistence
+- 🤖 Browser automation capabilities
+
+## 📦 Installation Guide
+
+### 💻 System Requirements
+
+- Windows 10 or higher (currently only Windows platform is supported)
+
+⚠️ **Note:** Support for macOS and Linux platforms is under development
+
+### 🔧 Installation Steps
+
+1. 📥 Download the software:
+   - Download the latest version from the releases page https://github.com/chawuciren/cursor-ide-free-trial/releases
+
+2. ⚙️ Install the program:
+   - Extract the downloaded zip file to the specified directory
+   - Run `Cursor_IDE_Free_Trial.exe` with administrator privileges
+
+### 📝 Usage Guide
+
+#### ⚙️ Configuration Guide
+
+1. **🌐 Network Proxy Configuration**
+   - Go to the "Settings" tab
+   - Check "Enable Proxy"
+   - Fill in proxy host and port information
+   - Click "Save Settings" to confirm changes
+
+2. **📧 Email Service Configuration**
+   - Check "Use Proxy" to ensure email service stability
+   - Choose one of the following email configuration methods:
+
+   A. IMAP Method (Recommended):
+      - Prerequisites: Configure Cloudflare domain email forwarding ([Detailed Guide](doc/cloudflare-email-setup.md))
+      - Configuration steps:
+        * Select Gmail as the receiving email (recommended)
+        * Fill in the complete receiving email address
+        * Fill in the email app password (Gmail requires app-specific password)
+        * Check "Enable IMAP"
+        * Set IMAP host to: imap.gmail.com
+        * Set IMAP port to: 993
+
+   B. TempMail Method:
+      - Prerequisites: Understand TempMail service usage ([Detailed Guide](doc/tempmail-setup.md))
+      - Configuration steps:
+        * Set preferred email domain (must match TempMail definition)
+        * Check "Custom Username" option
+        * Fill in username set in TempMail
+        * Fill in corresponding PIN code
 
 ## 🛠️ Tech Stack
 

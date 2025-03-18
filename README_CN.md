@@ -2,6 +2,8 @@
 
 [English Version](README.md)
 
+![Cursor IDE Free Trial 界面截图](doc/images/screenshot.png)
+
 🎯 AI IDE Free Trial 是一个辅助工具，旨在帮助用户更方便地体验 Cursor IDE 的试用版本。本工具主要解决试用过程中的机器码报错问题，并提供便捷的邮箱收发及账号管理功能。
 
 ## ✨ 项目介绍
@@ -75,7 +77,7 @@
    - 选择以下任一邮箱配置方式：
 
    A. IMAP 形式（推荐）：
-      - 前置准备：配置 Cloudflare 域名邮箱转发（参考：`doc/cloudflare-email-setup-cn.md`）
+      - 前置准备：配置 Cloudflare 域名邮箱转发（[详细说明](doc/cloudflare-email-setup-cn.md)）
       - 配置步骤：
         * 选择 Gmail 作为收件邮箱（推荐）
         * 填写完整收件邮箱地址
@@ -85,7 +87,7 @@
         * IMAP 端口设置为：993
 
    B. TempMail 形式：
-      - 前置准备：了解 TempMail 服务使用方法（参考：`doc/tempmail-setup-cn.md`）
+      - 前置准备：了解 TempMail 服务使用方法（[详细说明](doc/tempmail-setup-cn.md)）
       - 配置步骤：
         * 设置邮箱首选域名（需与 TempMail 中定义一致）
         * 勾选"自定义用户名"选项
