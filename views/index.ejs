@@ -21,15 +21,6 @@
                         <button class="nav-link" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button" role="tab">⭐一键换号</button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="generate-tab" data-bs-toggle="tab" data-bs-target="#generate" type="button" role="tab">📧邮箱绑定</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="register-tab" data-bs-toggle="tab" data-bs-target="#register" type="button" role="tab">🚩账号注册</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="login-tab" data-bs-toggle="tab" data-bs-target="#login" type="button" role="tab">🚀账号登录</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
                         <button class="nav-link" id="accounts-tab" data-bs-toggle="tab" data-bs-target="#accounts" type="button" role="tab">📄账号列表</button>
                     </li>
                     <li class="nav-item" role="presentation">
@@ -60,91 +51,6 @@
                                 <div class="mt-2">
                                     <small id="completeFlowStatus" class="text-muted">等待开始...</small>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 账号生成 -->
-                    <div class="tab-pane fade" id="generate" role="tabpanel">
-                        <div class="form-container">
-                            <h3>邮箱绑定</h3>
-                            <div class="alert alert-dark bg-dark-subtle border-dark text-light" role="alert" style="background-color: #1a1a1a !important; border-color: #404040;">
-                                <i class="bi bi-info-circle me-2"></i>
-                                生成账号信息，并绑定到Cloudflare邮箱。
-                            </div>
-                            <div class="mb-3">
-                                <label for="generateCount" class="form-label">生成数量</label>
-                                <input type="number" class="form-control" id="generateCount" value="1">
-                            </div>
-                            <div class="mb-3">
-                                <button class="btn btn-primary" id="createAccounts">开始生成</button>
-                                <button class="btn btn-secondary" onclick="document.getElementById('accounts-tab').click()">账号列表</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 账号注册 -->
-                    <div class="tab-pane fade" id="register" role="tabpanel">
-                        <div class="form-container">
-                            <h3>账号注册</h3>
-                            <div class="alert alert-dark bg-dark-subtle border-dark text-light" role="alert" style="background-color: #1a1a1a !important; border-color: #404040;">
-                                <i class="bi bi-info-circle me-2"></i>
-                                使用已有的邮箱账号进行注册。
-                            </div>
-                            <form id="registerForm">
-                                <div class="mb-3">
-                                    <label for="registerEmail" class="form-label">邮箱地址</label>
-                                    <input type="email" class="form-control" id="registerEmail" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="registerFirstName" class="form-label">名字</label>
-                                    <input type="text" class="form-control" id="registerFirstName" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="registerLastName" class="form-label">姓氏</label>
-                                    <input type="text" class="form-control" id="registerLastName" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="registerUsername" class="form-label">用户名</label>
-                                    <input type="text" class="form-control" id="registerUsername" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="registerPassword" class="form-label">密码</label>
-                                    <input type="password" class="form-control" id="registerPassword" required>
-                                </div>
-                                <div class="mb-3">
-                                    <button type="submit" class="btn btn-primary" id="startRegisterBtn">开始注册</button>
-                                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('accounts-tab').click()">账号列表</button>
-                                </div>
-                                <div class="mt-2">
-                                    <small id="registerStatus" class="text-muted">等待开始...</small>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-
-                    <!-- 账号登录 -->
-                    <div class="tab-pane fade" id="login" role="tabpanel">
-                        <div class="form-container">
-                            <h3>账号登录</h3>
-                            <div class="alert alert-dark bg-dark-subtle border-dark text-light" role="alert" style="background-color: #1a1a1a !important; border-color: #404040;">
-                                <i class="bi bi-info-circle me-2"></i>
-                                登录已有的账号邮箱，并切换IDE账号，重置机器码。
-                            </div>
-                            <div class="mb-3">
-                                <label for="loginEmail" class="form-label">登录邮箱</label>
-                                <input type="email" class="form-control" id="loginEmail" placeholder="请输入登录邮箱">
-                            </div>
-                            <div class="mb-3">
-                                <label for="loginPassword" class="form-label">登录密码</label>
-                                <input type="password" class="form-control" id="loginPassword" placeholder="请输入登录密码">
-                            </div>
-                            <div class="mb-3">
-                                <button class="btn btn-primary" id="startLoginBtn">开始登录</button>
-                                <button class="btn btn-secondary" onclick="document.getElementById('accounts-tab').click()">账号列表</button>
-                            </div>
-                            <div class="mt-2">
-                                <small id="loginStatus" class="text-muted">等待开始...</small>
                             </div>
                         </div>
                     </div>
@@ -735,10 +641,8 @@
     <script src="/js/main.js"></script>
     <script src="/js/settings.js"></script>
     <script src="/js/accounts.js"></script>
-    <script src="/js/login.js"></script>
     <script src="/js/debug.js"></script>
     <script src="/js/complete-flow.js"></script>
-    <script src="/js/register.js"></script>
     <script src="/js/user-info.js"></script>
 </body>
 </html> 

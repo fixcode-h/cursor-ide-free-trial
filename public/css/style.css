@@ -43,7 +43,6 @@ html, body {
     border-right: 1px solid #404040;
     padding: 20px;
     height: 100vh;
-    overflow-y: auto;
 }
 
 /* 标签页样式 */
@@ -71,12 +70,42 @@ html, body {
 
 /* 表单容器样式 */
 .form-container {
-    padding: 15px;
-    background-color: var(--dark-secondary);
+    padding: 20px;
+    height: calc(100vh - 60px);
+    overflow-y: auto;
+    background-color: #1a1a1a;
+    border-radius: 0 0 5px 5px;
+}
+
+/* 添加滚动条样式 */
+.form-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.form-container::-webkit-scrollbar-track {
+    background: #2d2d2d;
+}
+
+.form-container::-webkit-scrollbar-thumb {
+    background: #555;
     border-radius: 4px;
-    margin-top: 20px;
-    height: calc(100vh - 150px);
-    overflow: hidden;
+}
+
+.form-container::-webkit-scrollbar-thumb:hover {
+    background: #666;
+}
+
+/* 确保滚动条样式在深色主题下保持一致 */
+.dark-theme .form-container::-webkit-scrollbar-track {
+    background: #2d2d2d;
+}
+
+.dark-theme .form-container::-webkit-scrollbar-thumb {
+    background: #555;
+}
+
+.dark-theme .form-container::-webkit-scrollbar-thumb:hover {
+    background: #666;
 }
 
 /* 表单元素样式 */
@@ -239,26 +268,53 @@ body {
 }
 
 .table-responsive {
-    overflow-y: scroll;
-    overflow-x: hidden;
-    height: calc(100vh - 350px);
+    overflow: visible;
+    height: auto;
 }
 
-/* 设置表单样式 */
-.settings-form {
+/* 移除table-responsive的滚动条样式 */
+.table-responsive::-webkit-scrollbar {
+    display: none;
+}
+
+/* 调整form-container的样式 */
+.form-container {
     padding: 20px;
-    max-height: calc(100vh - 350px);
+    height: calc(100vh - 60px);
     overflow-y: auto;
+    background-color: #1a1a1a;
+    border-radius: 0 0 5px 5px;
 }
 
-.form-check-input {
-    background-color: #333333;
-    border-color: #404040;
+/* 添加滚动条样式 */
+.form-container::-webkit-scrollbar {
+    width: 8px;
 }
 
-.form-check-input:checked {
-    background-color: #0d6efd;
-    border-color: #0d6efd;
+.form-container::-webkit-scrollbar-track {
+    background: #2d2d2d;
+}
+
+.form-container::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 4px;
+}
+
+.form-container::-webkit-scrollbar-thumb:hover {
+    background: #666;
+}
+
+/* 确保滚动条样式在深色主题下保持一致 */
+.dark-theme .form-container::-webkit-scrollbar-track {
+    background: #2d2d2d;
+}
+
+.dark-theme .form-container::-webkit-scrollbar-thumb {
+    background: #555;
+}
+
+.dark-theme .form-container::-webkit-scrollbar-thumb:hover {
+    background: #666;
 }
 
 /* 表格样式 */

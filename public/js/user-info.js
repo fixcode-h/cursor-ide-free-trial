@@ -120,15 +120,15 @@ async function updateLicenseInfo() {
                             <div class="list-group-item bg-dark-subtle border-dark text-light" style="background-color: #1a1a1a !important; border-color: #404040;">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <span class="label" style="color: #8a8a8a;">邮箱</span>
-                                    <span class="value" style="color: #ffffff;">${userInfo.latestAccount.email}</span>
+                                    <span id="latestAccountEmail" class="value" style="color: #ffffff;">${userInfo.latestAccount.email}</span>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center mt-2">
                                     <span class="label" style="color: #8a8a8a;">创建时间</span>
-                                    <span class="value" style="color: #ffffff;">${new Date(userInfo.latestAccount.createdAt).toLocaleString()}</span>
+                                    <span id="latestAccountCreatedAt" class="value" style="color: #ffffff;">${new Date(userInfo.latestAccount.createdAt).toLocaleString()}</span>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center mt-2">
                                     <span class="label" style="color: #8a8a8a;">过期时间</span>
-                                    <span class="value" style="color: #ffffff;">${new Date(userInfo.latestAccount.expireTime).toLocaleString()}</span>
+                                    <span id="latestAccountExpireTime" class="value" style="color: #ffffff;">${new Date(userInfo.latestAccount.expireTime).toLocaleString()}</span>
                                 </div>
                             </div>
                         ` : `
@@ -263,27 +263,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // 更新最近创建的账号列表
-        const recentAccountsTableBody = document.getElementById('recentAccountsTableBody');
-        if (data.accounts && data.accounts.length > 0) {
-            // 只显示最近的5个账号
-            const recentAccounts = data.accounts.slice(0, 5);
-            recentAccountsTableBody.innerHTML = recentAccounts.map(account => `
-                <tr>
-                    <td>${account.email}</td>
-                    <td>${new Date(account.createdAt).toLocaleString()}</td>
-                    <td>
-                        <span class="badge ${getStatusBadgeClass(account.status)}">
-                            ${getStatusText(account.status)}
-                        </span>
-                    </td>
-                </tr>
-            `).join('');
+        const latestAccountEmail = document.getElementById('latestAccountEmail');
+        const latestAccountCreatedAt = document.getElementById('latestAccountCreatedAt');
+        const latestAccountExpireTime = document.getElementById('latestAccountExpireTime');
+        if (data.latestAccount && data.latestAccount.email) {
+            latestAccountEmail.textContent = data.latestAccount.email;
+            latestAccountCreatedAt.textContent = new Date(data.latestAccount.createdAt).toLocaleString();
+            latestAccountExpireTime.textContent = new Date(data.latestAccount.expireTime).toLocaleString();
         } else {
-            recentAccountsTableBody.innerHTML = `
-                <tr>
-                    <td colspan="3" class="text-center">暂无最近创建的账号</td>
-                </tr>
-            `;
+            latestAccountEmail.textContent = '-';
+            latestAccountCreatedAt.textContent = '-';
+            latestAccountExpireTime.textContent = '-';
         }
     }
 
