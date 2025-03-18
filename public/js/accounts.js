@@ -384,6 +384,19 @@ document.addEventListener('DOMContentLoaded', () => {
             createAccounts(count);
         });
     }
+
+    // 添加快速生成账号按钮事件监听
+    document.getElementById('quickGenerateAccount').addEventListener('click', async () => {
+        try {
+            appendToConsole('info', '开始生成/绑定账号...');
+            await createAccounts(1); // 固定生成1个账号
+            appendToConsole('success', '账号生成/绑定完成');
+            // 自动刷新账号列表
+            document.getElementById('refreshAccounts').click();
+        } catch (error) {
+            appendToConsole('error', `账号生成/绑定失败: ${error.message}`);
+        }
+    });
 });
 
 // 初始化模态框
