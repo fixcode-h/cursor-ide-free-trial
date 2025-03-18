@@ -1,5 +1,5 @@
 {
-  "name": "ai-ide-free-trial",
+  "name": "cursor-ide-free-trial",
   "version": "1.2.1",
   "main": "src/main/index.js",
   "scripts": {
@@ -13,7 +13,7 @@
   },
   "build": {
     "appId": "org.trial.free.ide.ai",
-    "productName": "AI_IDE_Free_Trial",
+    "productName": "Cursor_IDE_Free_Trial",
     "directories": {
       "output": "release"
     },
@@ -104,14 +104,14 @@
       ]
     },
     "portable": {
-      "artifactName": "AIIDEFreeTrial.exe"
+      "artifactName": "CursorIDEFreeTrial.exe"
     },
     "asar": true
   },
   "keywords": [],
   "author": "豚鼠特攻",
   "license": "ISC",
-  "description": "AI IDE 免费试用工具",
+  "description": "Cursor IDE 免费试用工具",
   "devDependencies": {
     "cross-env": "^7.0.3",
     "electron": "^33.0.0",
