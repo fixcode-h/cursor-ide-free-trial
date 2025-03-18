@@ -86,8 +86,13 @@ class BrowserInitializer {
 
                 // 添加指纹配置
                 if (this.config.browser.fingerprintRandom && this.config.browser.executablePath && this.config.browser.executablePath !== '') {
-                    connectOptions.args.push(`--fingerprint=${Math.floor(Math.random() * 4200000000)}`);
-                    logger.info('指纹参数配置完成');
+                    // 优先使用配置中的固定种子，如果没有则随机生成
+                    const fingerprintSeed = this.config.browser.fingerprintSeed && this.config.browser.fingerprintSeed.trim() !== '' 
+                        ? parseInt(this.config.browser.fingerprintSeed)
+                        : Math.floor(Math.random() * 4200000000) + 1;
+                    
+                    connectOptions.args.push(`--fingerprint=${fingerprintSeed}`);
+                    logger.info(`指纹参数配置完成: ${this.config.browser.fingerprintSeed ? '使用固定种子' : '使用随机种子'}`);
                 }
                 
                 logger.info('正在启动浏览器...');

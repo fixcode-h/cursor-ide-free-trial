@@ -135,6 +135,29 @@ document.addEventListener('DOMContentLoaded', function() {
         appendToConsole('info', 'Chrome可执行文件路径已恢复默认值');
     });
 
+    // 生成随机指纹种子
+    function generateRandomSeed() {
+        // 生成1到4200000000之间的随机整数
+        return Math.floor(Math.random() * 4200000000) + 1;
+    }
+
+    // 处理指纹种子随机生成
+    document.getElementById('randomFingerprintSeedBtn').addEventListener('click', () => {
+        const input = document.getElementById('browserFingerprintSeed');
+        input.value = generateRandomSeed();
+        appendToConsole('info', '已生成新的随机指纹种子');
+    });
+
+    // 监听随机指纹复选框变化
+    document.getElementById('browserFingerprintRandom').addEventListener('change', function(event) {
+        const seedInput = document.getElementById('browserFingerprintSeed');
+        if (event.target.checked && (!seedInput.value || seedInput.value.trim() === '')) {
+            // 如果勾选了随机指纹且种子为空，自动生成一个随机种子
+            seedInput.value = generateRandomSeed();
+            appendToConsole('info', '已自动生成随机指纹种子');
+        }
+    });
+
     // 加载配置函数
     async function loadConfig() {
         try {

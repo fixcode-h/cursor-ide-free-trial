@@ -78,6 +78,7 @@ const defaultConfig = {
         checkFingerprint: false, // 是否检查浏览器指纹
         executablePath: '', // Chrome可执行文件的路径
         fingerprintRandom: false, // 是否随机指纹浏览器种子
+        fingerprintSeed: '', // 固定指纹浏览器种子
     }
 };
 
