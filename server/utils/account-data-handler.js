@@ -22,6 +22,7 @@ class AccountDataHandler {
         { id: 'firstname', title: 'FIRSTNAME' },
         { id: 'lastname', title: 'LASTNAME' },
         { id: 'status', title: 'STATUS' },
+        { id: 'cookie', title: 'COOKIE' },
         { id: 'verificationCode', title: 'VERIFICATION_CODE' },
         { id: 'registrationType', title: 'REGISTRATION_TYPE' },
         { id: 'createdAt', title: 'CREATED_AT' },
@@ -76,6 +77,7 @@ class AccountDataHandler {
                 firstname TEXT,
                 lastname TEXT,
                 status TEXT,
+                cookie TEXT,
                 verificationCode TEXT,
                 registrationType TEXT,
                 createdAt TEXT,
@@ -110,7 +112,7 @@ class AccountDataHandler {
             `;
 
             const values = columns.map(column => {
-                if (column === 'registrationType') {
+                if (column === 'registrationType' && !record[column]) {
                     return this.registrationType;
                 }
                 return record[column] || '';

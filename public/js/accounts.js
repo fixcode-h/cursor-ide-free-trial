@@ -400,6 +400,8 @@ function editAccount(account) {
     document.getElementById('editAccountLastName').value = account.lastname || '';
     document.getElementById('editAccountStatus').value = account.status || 'CREATED';
     document.getElementById('editAccountVerificationCode').value = account.verificationCode || '';
+    document.getElementById('editAccountCookie').value = account.cookie || '';
+    document.getElementById('editAccountRegistrationType').value = account.registrationType || 'cursor';
     editAccountModal.show();
 }
 
@@ -412,7 +414,9 @@ document.getElementById('saveEditAccount').addEventListener('click', async () =>
         firstname: document.getElementById('editAccountFirstName').value,
         lastname: document.getElementById('editAccountLastName').value,
         status: document.getElementById('editAccountStatus').value,
-        verificationCode: document.getElementById('editAccountVerificationCode').value
+        verificationCode: document.getElementById('editAccountVerificationCode').value,
+        cookie: document.getElementById('editAccountCookie').value,
+        registrationType: document.getElementById('editAccountRegistrationType').value
     };
 
     // 只有当密码字段不为空时才更新密码
@@ -445,6 +449,8 @@ document.getElementById('addManualAccount').addEventListener('click', () => {
     document.getElementById('manualAccountLastName').value = '';
     document.getElementById('manualAccountStatus').value = 'CREATED';
     document.getElementById('manualAccountVerificationCode').value = '';
+    document.getElementById('manualAccountCookie').value = '';
+    document.getElementById('manualAccountRegistrationType').value = 'cursor';
     addManualAccountModal.show();
 });
 
@@ -457,7 +463,9 @@ document.getElementById('saveManualAccount').addEventListener('click', async () 
         firstname: document.getElementById('manualAccountFirstName').value,
         lastname: document.getElementById('manualAccountLastName').value,
         status: document.getElementById('manualAccountStatus').value,
-        verificationCode: document.getElementById('manualAccountVerificationCode').value
+        verificationCode: document.getElementById('manualAccountVerificationCode').value,
+        cookie: document.getElementById('manualAccountCookie').value,
+        registrationType: document.getElementById('manualAccountRegistrationType').value
     };
 
     try {

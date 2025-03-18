@@ -187,11 +187,22 @@ router.post('/complete', async (req, res) => {
 
         // 获取 session token
         logger.info('正在获取登录信息...');
-        const sessionToken = await registrationFlow.getSessionToken(page);
+        const sessionCookie = await registrationFlow.getSessionCookie(page);
+        const sessionToken = await registrationFlow.getSessionToken(sessionCookie);
         if (!sessionToken) {
             throw new Error('获取 session token 失败');
         }
         logger.info('成功获取 session token');
+
+        // 更新账号Cooie
+        await accountDataHandler.updateRecord(
+            account.email,
+            { 
+                cookie: sessionCookie,
+                updatedAt: new Date().toISOString()
+            }
+        );
+        logger.info('账号Cookie已更新');
 
         // 更新认证信息
         const authSuccess = await registrationFlow.updateAuth(
@@ -397,6 +408,8 @@ router.post('/register', async (req, res) => {
 
 // 单步登录流程
 router.post('/login', async (req, res) => {
+    let accountDataHandler = null;
+
     try {
         const { email, password } = req.body;
 
@@ -413,6 +426,12 @@ router.post('/login', async (req, res) => {
                 error: '密码不能为空'
             });
         }
+
+        // 初始化数据处理器
+        logger.info('初始化数据处理器...');
+        accountDataHandler = new AccountDataHandler();
+        await accountDataHandler.initialize();
+        logger.info('数据处理器初始化完成');
 
         // 初始化浏览器
         logger.info('正在初始化浏览器...');
@@ -438,11 +457,22 @@ router.post('/login', async (req, res) => {
         logger.info('正在获取登录信息...');
 
         // 获取 session token
-        const sessionToken = await flow.getSessionToken(loginPage);
+        const sessionCookie = await flow.getSessionCookie(loginPage);
+        const sessionToken = await flow.getSessionToken(sessionCookie);
         if (!sessionToken) {
             throw new Error('获取 session token 失败');
         }
         logger.info('成功获取 session token');
+
+        // 更新账号Cooie
+        await accountDataHandler.updateRecord(
+            account.email,
+            { 
+                cookie: sessionCookie,
+                updatedAt: new Date().toISOString()
+            }
+        );
+        logger.info('账号Cookie已更新');
 
         // 更新认证信息
         const success = await flow.updateAuth(

@@ -9,6 +9,10 @@ const sqlite3 = require('sqlite3').verbose();
 const { execSync } = require('child_process');
 const { spawn } = require('child_process');
 const consoleHelper = require('../utils/console-helper');
+const axios = require('axios');
+const { SocksProxyAgent } = require('socks-proxy-agent');
+const { HttpsProxyAgent } = require('https-proxy-agent');
+const { HttpProxyAgent } = require('http-proxy-agent');
 
 class Cursor {
     constructor() {
@@ -335,7 +339,7 @@ class Cursor {
         return 'no-reply@cursor.sh';
     }
 
-    async getSessionToken(page, maxAttempts = 3, retryInterval = 2000) {
+    async getSessionCookie(page, maxAttempts = 3, retryInterval = 2000) {
         logger.info('开始获取 Cursor session token...');
         let attempts = 0;
 
@@ -349,19 +353,18 @@ class Cursor {
                 const sessionCookie = cookies.find(cookie => cookie.name === 'WorkosCursorSessionToken');
                 
                 if (sessionCookie) {
-                    const tokenValue = decodeURIComponent(sessionCookie.value).split('::')[1];
-                    logger.info('成功获取 Cursor session token');
+                    logger.info('成功获取 Cursor session cookie');
                     await client.detach();
-                    return tokenValue;
+                    return sessionCookie.value;
                 }
 
                 await client.detach();
                 attempts++;
                 if (attempts < maxAttempts) {
-                    logger.warn(`第 ${attempts} 次尝试未获取到 CursorSessionToken，${retryInterval/1000}秒后重试...`);
+                    logger.warn(`第 ${attempts} 次尝试未获取到 CursorSessionCookie，${retryInterval/1000}秒后重试...`);
                     await delay(retryInterval);
                 } else {
-                    logger.error(`已达到最大尝试次数(${maxAttempts})，获取 CursorSessionToken 失败`);
+                    logger.error(`已达到最大尝试次数(${maxAttempts})，获取 CursorSessionCookie 失败`);
                 }
             } catch (error) {
                 logger.error('获取 cookie 失败:', error);
@@ -374,6 +377,91 @@ class Cursor {
         }
 
         return null;
+    }
+
+    async getSessionToken(sessionCookie = '') {
+        logger.info('开始获取 Cursor session token...');
+
+        if (sessionCookie) {
+            const tokenValue = decodeURIComponent(sessionCookie).split('::')[1];
+            logger.info('成功获取 Cursor session token');
+            return tokenValue;
+        }
+
+        logger.error('获取 cookie 失败:', error);
+        return null;
+    }
+
+    async getUseage(sessionCookie = '') {
+        logger.info('开始获取 Cursor 使用情况...');
+
+        try {
+            if (!sessionCookie) {
+                throw new Error('Session cookie 不能为空');
+            }
+
+            // 从 cookie 中提取 user ID
+            const userId = decodeURIComponent(sessionCookie).split('::')[0];
+            
+            // 创建基础请求配置
+            const axiosConfig = {
+                baseURL: 'https://www.cursor.com',
+                headers: {
+                    'accept': '*/*',
+                    'accept-encoding': 'gzip, deflate, br, zstd',
+                    'accept-language': 'en-US,en;q=0.9',
+                    'cookie': `NEXT_LOCALE=en; WorkosCursorSessionToken=${sessionCookie}`,
+                    'referer': 'https://www.cursor.com/settings',
+                    'sec-ch-ua': '"Not A(Brand";v="8", "Chromium";v="132", "Google Chrome";v="132"',
+                    'sec-ch-ua-mobile': '?0',
+                    'sec-ch-ua-platform': '"Windows"',
+                    'sec-fetch-dest': 'empty',
+                    'sec-fetch-mode': 'cors',
+                    'sec-fetch-site': 'same-origin',
+                    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36'
+                }
+            };
+
+            // 如果启用了代理，添加代理配置
+            if (this.proxyConfig && this.proxyConfig.enabled) {
+                const { protocol, host, port } = this.proxyConfig;
+                const proxyUrl = `${protocol}://${host}:${port}`;
+
+                switch (protocol) {
+                    case 'socks5':
+                        axiosConfig.httpsAgent = new SocksProxyAgent(proxyUrl);
+                        break;
+                    case 'http':
+                        axiosConfig.httpAgent = new HttpProxyAgent(proxyUrl);
+                        axiosConfig.httpsAgent = new HttpsProxyAgent(proxyUrl);
+                        break;
+                    case 'https':
+                        axiosConfig.httpsAgent = new HttpsProxyAgent(proxyUrl);
+                        break;
+                }
+                logger.info('已启用代理配置:', { protocol, host, port });
+            }
+
+            // 创建 axios 实例并发送请求
+            const axiosInstance = axios.create(axiosConfig);
+            const response = await axiosInstance.get(`/api/usage?user=${userId}`);
+
+            if (response.status === 200) {
+                logger.info('成功获取使用情况');
+                const usage = response.data['gpt-4'];
+                const data = {
+                    maxRequestUsage: usage.maxRequestUsage,
+                    numRequests: usage.numRequests,
+                }
+                return data;
+            } else {
+                throw new Error(`请求失败: ${response.status}`);
+            }
+
+        } catch (error) {
+            logger.error('获取使用情况失败:', error);
+            throw error;
+        }
     }
 
     async getDbPath() {
@@ -495,6 +583,89 @@ class Cursor {
         } catch (error) {
             logger.error('更新认证信息失败:', error);
             return false;
+        }
+    }
+
+    /**
+     * 从 SQLite 数据库中获取 Cursor 认证信息
+     * @returns {Promise<{email: string|null, accessToken: string|null, refreshToken: string|null}>} 包含认证信息的对象
+     */
+    async getAuth() {
+        logger.info('开始获取 Cursor 认证信息...');
+
+        try {
+            const dbPath = await this.getDbPath();
+            
+            return new Promise((resolve, reject) => {
+                // 打开数据库连接
+                const db = new sqlite3.Database(dbPath, (err) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    // 准备查询的键
+                    const keys = [
+                        'cursorAuth/cachedEmail',
+                        'cursorAuth/accessToken',
+                        'cursorAuth/refreshToken'
+                    ];
+
+                    // 存储结果的对象
+                    const result = {
+                        email: null,
+                        accessToken: null,
+                        refreshToken: null
+                    };
+
+                    // 使用 Promise.all 并行查询所有键
+                    Promise.all(keys.map(key => {
+                        return new Promise((resolve, reject) => {
+                            db.get('SELECT value FROM itemTable WHERE key = ?', [key], (err, row) => {
+                                if (err) {
+                                    reject(err);
+                                    return;
+                                }
+
+                                // 根据键名设置对应的值
+                                switch (key) {
+                                    case 'cursorAuth/cachedEmail':
+                                        result.email = row ? row.value : null;
+                                        break;
+                                    case 'cursorAuth/accessToken':
+                                        result.accessToken = row ? row.value : null;
+                                        break;
+                                    case 'cursorAuth/refreshToken':
+                                        result.refreshToken = row ? row.value : null;
+                                        break;
+                                }
+                                resolve();
+                            });
+                        });
+                    }))
+                    .then(() => {
+                        db.close((err) => {
+                            if (err) {
+                                reject(err);
+                                return;
+                            }
+                            logger.info('成功获取认证信息');
+                            resolve(result);
+                        });
+                    })
+                    .catch(error => {
+                        db.close(() => reject(error));
+                    });
+                });
+            });
+
+        } catch (error) {
+            logger.error('获取认证信息失败:', error);
+            return {
+                email: null,
+                accessToken: null,
+                refreshToken: null
+            };
         }
     }
 

@@ -159,7 +159,7 @@
                             </div>
                             <div class="mb-3">
                                 <button class="btn btn-secondary" id="refreshAccounts">刷新列表</button>
-                                <button class="btn btn-primary" id="addManualAccount">手动添加账号</button>
+                                <button class="btn btn-primary" id="addManualAccount">手动登记账号</button>
                             </div>
                             <div class="table-responsive">
                                 <table class="table table-striped table-hover">
@@ -223,8 +223,19 @@
                                             </select>
                                         </div>
                                         <div class="mb-3">
+                                            <label for="editAccountRegistrationType" class="form-label text-light">注册类型</label>
+                                            <select class="form-select bg-dark text-light border-secondary" id="editAccountRegistrationType" style="background-color: #2a2a2a; border-color: #404040;">
+                                                <option value="cursor">Cursor</option>
+                                                <option value="copilot">Copilot</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
                                             <label for="editAccountVerificationCode" class="form-label text-light">验证码</label>
                                             <input type="text" class="form-control bg-dark text-light border-secondary" id="editAccountVerificationCode" style="background-color: #2a2a2a; border-color: #404040;">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="editAccountCookie" class="form-label text-light">Cookie</label>
+                                            <textarea class="form-control bg-dark text-light border-secondary" id="editAccountCookie" style="background-color: #2a2a2a; border-color: #404040;" rows="3"></textarea>
                                         </div>
                                     </form>
                                 </div>
@@ -241,7 +252,7 @@
                         <div class="modal-dialog">
                             <div class="modal-content" style="background-color: #1a1a1a; border-color: #404040;">
                                 <div class="modal-header border-secondary" style="border-color: #404040;">
-                                    <h5 class="modal-title text-light">手动添加账号</h5>
+                                    <h5 class="modal-title text-light">手动登记账号</h5>
                                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body">
@@ -277,8 +288,19 @@
                                             </select>
                                         </div>
                                         <div class="mb-3">
+                                            <label for="manualAccountRegistrationType" class="form-label text-light">注册类型</label>
+                                            <select class="form-select bg-dark text-light border-secondary" id="manualAccountRegistrationType" style="background-color: #2a2a2a; border-color: #404040;">
+                                                <option value="cursor">Cursor</option>
+                                                <option value="copilot">Copilot</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
                                             <label for="manualAccountVerificationCode" class="form-label text-light">验证码</label>
                                             <input type="text" class="form-control bg-dark text-light border-secondary" id="manualAccountVerificationCode" style="background-color: #2a2a2a; border-color: #404040;">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="manualAccountCookie" class="form-label text-light">Cookie</label>
+                                            <textarea class="form-control bg-dark text-light border-secondary" id="manualAccountCookie" style="background-color: #2a2a2a; border-color: #404040;" rows="3"></textarea>
                                         </div>
                                     </form>
                                 </div>

@@ -45,7 +45,7 @@ async function updateLicenseInfo() {
 
         const userInfoContent = document.getElementById('user-info');
         let html = `
-            <div class="form-container">
+            <div class="form-container" style="max-height: calc(100vh - 150px); overflow-y: auto; padding: 20px;">
                 <h3>用户信息</h3>
                 <div class="card mb-3">
                     <div class="card-body">
@@ -64,7 +64,33 @@ async function updateLicenseInfo() {
         // 显示用户信息和授权信息
         const info = status.licenseInfo || {};
         html += `
-            <div class="card">
+            <div class="card mb-3">
+                <div class="card-header">编辑器登录信息</div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <div class="list-group-item bg-dark-subtle border-dark text-light d-flex justify-content-between align-items-center" style="background-color: #1a1a1a !important; border-color: #404040;">
+                            <span class="label" style="color: #8a8a8a;">当前登录邮箱</span>
+                            <span id="editorEmail" class="value" style="color: #ffffff;">${userInfo?.cursor?.email || '-'}</span>
+                        </div>
+                        <div class="list-group-item bg-dark-subtle border-dark text-light d-flex justify-content-between align-items-center" style="background-color: #1a1a1a !important; border-color: #404040;">
+                            <span class="label" style="color: #8a8a8a;">登录状态</span>
+                            <span id="editorLoginStatus" class="value ${userInfo?.cursor?.email ? 'text-success' : 'text-danger'}" style="color: #ffffff;">
+                                ${userInfo?.cursor?.email ? '已登录' : '未登录'}
+                            </span>
+                        </div>
+                        <div class="list-group-item bg-dark-subtle border-dark text-light d-flex justify-content-between align-items-center" style="background-color: #1a1a1a !important; border-color: #404040;">
+                            <span class="label" style="color: #8a8a8a;">账号额度</span>
+                            <span class="value" style="color: #ffffff;">${userInfo?.cursor?.maxRequestUsage || '-'}</span>
+                        </div>
+                        <div class="list-group-item bg-dark-subtle border-dark text-light d-flex justify-content-between align-items-center" style="background-color: #1a1a1a !important; border-color: #404040;">
+                            <span class="label" style="color: #8a8a8a;">已使用额度</span>
+                            <span class="value" style="color: #ffffff;">${userInfo?.cursor?.numRequests || '-'}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card mb-3">
+                <div class="card-header">授权信息</div>
                 <div class="card-body">
                     <div class="list-group">
                         <div class="list-group-item bg-dark-subtle border-dark text-light d-flex justify-content-between align-items-center" style="background-color: #1a1a1a !important; border-color: #404040;">
@@ -83,23 +109,33 @@ async function updateLicenseInfo() {
                             <span class="label" style="color: #8a8a8a;">剩余可创建账号</span>
                             <span class="value" style="color: #ffffff;">${userInfo ? userInfo.remainingAccounts : '未知'}</span>
                         </div>
-                        ${userInfo && userInfo.latestAccount ? `
-                        <div class="list-group-item bg-dark-subtle border-dark text-light" style="background-color: #1a1a1a !important; border-color: #404040;">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="label" style="color: #8a8a8a;">最近创建的账号</span>
-                            </div>
-                            <div class="mt-2">
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">最近创建的账号</div>
+                <div class="card-body">
+                    <div class="list-group">
+                        ${userInfo?.latestAccount ? `
+                            <div class="list-group-item bg-dark-subtle border-dark text-light" style="background-color: #1a1a1a !important; border-color: #404040;">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <span class="label" style="color: #8a8a8a;">邮箱</span>
                                     <span class="value" style="color: #ffffff;">${userInfo.latestAccount.email}</span>
                                 </div>
-                                <div class="d-flex justify-content-between align-items-center mt-1">
+                                <div class="d-flex justify-content-between align-items-center mt-2">
                                     <span class="label" style="color: #8a8a8a;">创建时间</span>
                                     <span class="value" style="color: #ffffff;">${new Date(userInfo.latestAccount.createdAt).toLocaleString()}</span>
                                 </div>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <span class="label" style="color: #8a8a8a;">过期时间</span>
+                                    <span class="value" style="color: #ffffff;">${new Date(userInfo.latestAccount.expireTime).toLocaleString()}</span>
+                                </div>
                             </div>
-                        </div>
-                        ` : ''}
+                        ` : `
+                            <div class="list-group-item bg-dark-subtle border-dark text-light d-flex justify-content-between align-items-center" style="background-color: #1a1a1a !important; border-color: #404040;">
+                                <span class="text-center w-100">暂无最近创建的账号</span>
+                            </div>
+                        `}
                     </div>
                 </div>
             </div>
@@ -142,6 +178,42 @@ async function updateLicenseInfo() {
     }
 }
 
+// 获取状态对应的样式类
+function getStatusBadgeClass(status) {
+    switch (status) {
+        case 'VERIFIED':
+            return 'bg-success';
+        case 'CODE_RECEIVED':
+            return 'bg-warning';
+        case 'CREATED':
+            return 'bg-info';
+        case 'FAILED':
+            return 'bg-danger';
+        case 'DISABLED':
+            return 'bg-secondary';
+        default:
+            return 'bg-secondary';
+    }
+}
+
+// 获取状态对应的文本
+function getStatusText(status) {
+    switch (status) {
+        case 'VERIFIED':
+            return '已验证';
+        case 'CODE_RECEIVED':
+            return '已收到验证码';
+        case 'CREATED':
+            return '已创建';
+        case 'FAILED':
+            return '注册失败';
+        case 'DISABLED':
+            return '已禁用';
+        default:
+            return status;
+    }
+}
+
 // 复制机器码到剪贴板
 function copyMachineCode() {
     const machineCodeInput = document.getElementById('machineCodeDisplay');
@@ -156,4 +228,106 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // 每分钟更新一次信息
-setInterval(updateLicenseInfo, 60000);
+setInterval(updateLicenseInfo, 15 * 60 * 1000);
+
+// 用户信息页面处理
+document.addEventListener('DOMContentLoaded', function() {
+    // 获取用户信息
+    async function fetchUserInfo() {
+        try {
+            const response = await http.get('/api/users/info');
+            if (response.success) {
+                updateUserInfo(response.data);
+            } else {
+                console.error('获取用户信息失败:', response.error);
+            }
+        } catch (error) {
+            console.error('获取用户信息出错:', error);
+        }
+    }
+
+    // 更新用户信息显示
+    function updateUserInfo(data) {
+        // 更新编辑器登录信息
+        const editorEmail = document.getElementById('editorEmail');
+        const editorLoginStatus = document.getElementById('editorLoginStatus');
+        
+        if (data.cursor && data.cursor.email) {
+            editorEmail.textContent = data.cursor.email;
+            editorLoginStatus.textContent = '已登录';
+            editorLoginStatus.className = 'text-success';
+        } else {
+            editorEmail.textContent = '-';
+            editorLoginStatus.textContent = '未登录';
+            editorLoginStatus.className = 'text-danger';
+        }
+
+        // 更新最近创建的账号列表
+        const recentAccountsTableBody = document.getElementById('recentAccountsTableBody');
+        if (data.accounts && data.accounts.length > 0) {
+            // 只显示最近的5个账号
+            const recentAccounts = data.accounts.slice(0, 5);
+            recentAccountsTableBody.innerHTML = recentAccounts.map(account => `
+                <tr>
+                    <td>${account.email}</td>
+                    <td>${new Date(account.createdAt).toLocaleString()}</td>
+                    <td>
+                        <span class="badge ${getStatusBadgeClass(account.status)}">
+                            ${getStatusText(account.status)}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        } else {
+            recentAccountsTableBody.innerHTML = `
+                <tr>
+                    <td colspan="3" class="text-center">暂无最近创建的账号</td>
+                </tr>
+            `;
+        }
+    }
+
+    // 获取状态对应的样式类
+    function getStatusBadgeClass(status) {
+        switch (status) {
+            case 'VERIFIED':
+                return 'bg-success';
+            case 'CODE_RECEIVED':
+                return 'bg-warning';
+            case 'CREATED':
+                return 'bg-info';
+            case 'FAILED':
+                return 'bg-danger';
+            case 'DISABLED':
+                return 'bg-secondary';
+            default:
+                return 'bg-secondary';
+        }
+    }
+
+    // 获取状态对应的文本
+    function getStatusText(status) {
+        switch (status) {
+            case 'VERIFIED':
+                return '已验证';
+            case 'CODE_RECEIVED':
+                return '已收到验证码';
+            case 'CREATED':
+                return '已创建';
+            case 'FAILED':
+                return '注册失败';
+            case 'DISABLED':
+                return '已禁用';
+            default:
+                return status;
+        }
+    }
+
+    // 初始加载用户信息
+    fetchUserInfo();
+
+    // 监听标签页切换事件，当切换到用户信息标签页时刷新数据
+    document.getElementById('user-info-tab').addEventListener('shown.bs.tab', function (e) {
+        fetchUserInfo();
+    });
+});

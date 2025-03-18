@@ -234,7 +234,9 @@ router.put('/:email', async (req, res) => {
             firstname,
             lastname,
             status,
-            verificationCode
+            registrationType,
+            verificationCode,
+            cookie
         } = req.body;
         
         const accounts = await accountDataHandler.readRecords();
@@ -271,7 +273,9 @@ router.put('/:email', async (req, res) => {
         if (firstname !== undefined) updateData.firstname = firstname;
         if (lastname !== undefined) updateData.lastname = lastname;
         if (status !== undefined) updateData.status = status;
+        if (registrationType !== undefined) updateData.registrationType = registrationType;
         if (verificationCode !== undefined) updateData.verificationCode = verificationCode;
+        if (cookie !== undefined) updateData.cookie = cookie;
 
         // 更新记录
         await accountDataHandler.updateRecord(email, updateData);
@@ -294,7 +298,9 @@ router.post('/manual', async (req, res) => {
             firstname,
             lastname,
             status,
-            verificationCode
+            registrationType,
+            verificationCode,
+            cookie
         } = req.body;
         
         // 验证必填字段
@@ -330,7 +336,9 @@ router.post('/manual', async (req, res) => {
             firstname,
             lastname,
             status: status || AccountDataHandler.AccountStatus.CREATED,
+            registrationType,
             verificationCode,
+            cookie,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
