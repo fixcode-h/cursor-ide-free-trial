@@ -40,8 +40,8 @@ router.get('/info', async (req, res) => {
             email: cursorAuth.email,
             accessToken: cursorAuth.accessToken,
             refreshToken: cursorAuth.refreshToken,
-            maxRequestUsage: usage.maxRequestUsage,
-            numRequests: usage.numRequests,
+            maxRequestUsage: usage?.maxRequestUsage || 0,
+            numRequests: usage?.numRequests || 0,
         };
 
         res.json(mailResult);
