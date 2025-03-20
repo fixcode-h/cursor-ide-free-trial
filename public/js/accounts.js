@@ -397,6 +397,132 @@ document.addEventListener('DOMContentLoaded', () => {
             appendToConsole('error', `账号生成/绑定失败: ${error.message}`);
         }
     });
+
+    // 导入按钮点击事件
+    document.getElementById('importAccounts').addEventListener('click', function() {
+        const importModal = new bootstrap.Modal(document.getElementById('importAccountsModal'));
+        importModal.show();
+    });
+
+    // 导出按钮点击事件
+    document.getElementById('exportAccounts').addEventListener('click', function() {
+        const exportModal = new bootstrap.Modal(document.getElementById('exportAccountsModal'));
+        exportModal.show();
+    });
+
+    // 选择导入文件按钮点击事件
+    document.getElementById('selectImportFileBtn').addEventListener('click', async function() {
+        try {
+            const result = await window.electron.showOpenDialog({
+                properties: ['openFile'],
+                filters: [
+                    { name: 'CSV Files', extensions: ['csv'] }
+                ]
+            });
+
+            if (!result.canceled && result.filePaths.length > 0) {
+                document.getElementById('importFile').value = result.filePaths[0];
+            }
+        } catch (error) {
+            appendToConsole('error', `选择文件失败: ${error.message}`);
+        }
+    });
+
+    // 选择导出文件按钮点击事件
+    document.getElementById('selectExportFileBtn').addEventListener('click', async function() {
+        try {
+            const result = await window.electron.showSaveDialog({
+                filters: [
+                    { name: 'CSV Files', extensions: ['csv'] }
+                ],
+                defaultPath: 'accounts.csv'
+            });
+
+            if (!result.canceled && result.filePath) {
+                document.getElementById('exportFile').value = result.filePath;
+            }
+        } catch (error) {
+            appendToConsole('error', `选择保存位置失败: ${error.message}`);
+        }
+    });
+
+    // 确认导入按钮点击事件
+    document.getElementById('confirmImportBtn').addEventListener('click', async function() {
+        const filePath = document.getElementById('importFile').value;
+        if (!filePath) {
+            appendToConsole('error', '请先选择要导入的CSV文件');
+            return;
+        }
+
+        try {
+            appendToConsole('info', '开始导入账号数据...');
+            
+            // 读取CSV文件内容
+            const csvData = await window.electron.readFile(filePath);
+            
+            // 发送导入请求
+            const response = await fetch('/api/accounts/import', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ csvData })
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                appendToConsole('success', `导入完成: 成功 ${result.data.imported} 个, 失败 ${result.data.failed} 个`);
+                
+                // 如果有失败的记录，显示错误信息
+                if (result.data.errors.length > 0) {
+                    appendToConsole('error', '导入失败的账号:');
+                    result.data.errors.forEach(error => {
+                        appendToConsole('error', `${error.email}: ${error.error}`);
+                    });
+                }
+                
+                // 刷新账号列表
+                fetchAccounts();
+                
+                // 关闭模态框
+                const importModal = bootstrap.Modal.getInstance(document.getElementById('importAccountsModal'));
+                importModal.hide();
+            } else {
+                throw new Error(result.error || '导入失败');
+            }
+        } catch (error) {
+            appendToConsole('error', `导入失败: ${error.message}`);
+        }
+    });
+
+    // 确认导出按钮点击事件
+    document.getElementById('confirmExportBtn').addEventListener('click', async function() {
+        const filePath = document.getElementById('exportFile').value;
+        if (!filePath) {
+            appendToConsole('error', '请先选择保存位置');
+            return;
+        }
+
+        try {
+            appendToConsole('info', '开始导出账号数据...');
+            
+            // 获取账号数据
+            const response = await fetch('/api/accounts/export');
+            const csvData = await response.text();
+            
+            // 保存到文件
+            await window.electron.writeFile(filePath, csvData);
+            
+            appendToConsole('success', '账号数据导出成功');
+            
+            // 关闭模态框
+            const exportModal = bootstrap.Modal.getInstance(document.getElementById('exportAccountsModal'));
+            exportModal.hide();
+        } catch (error) {
+            appendToConsole('error', `导出失败: ${error.message}`);
+        }
+    });
 });
 
 // 初始化模态框

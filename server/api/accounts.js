@@ -9,6 +9,8 @@ const CloudflareEmailManager = require('../utils/cloudflare-email-router');
 const { getConfig } = require('../utils/config');
 const { broadcastMessage } = require('../utils/websocket');
 const PublicMailApi = require('../utils/public-mail-api');
+const csv = require('csv-parse/sync');
+const { stringify } = require('csv-stringify/sync');
 
 // 初始化数据处理器
 const accountDataHandler = new AccountDataHandler();
@@ -356,6 +358,132 @@ router.post('/manual', async (req, res) => {
         res.status(500).json({ 
             success: false, 
             error: '手动添加账号失败',
+            message: error.message 
+        });
+    }
+});
+
+// 导出账号到CSV
+router.get('/export', async (req, res) => {
+    try {
+        const accounts = await accountDataHandler.readRecords();
+        
+        // 将账号数据转换为CSV格式
+        const csvData = stringify(accounts, {
+            header: true,
+            columns: [
+                'username',
+                'email',
+                'password',
+                'firstname',
+                'lastname',
+                'status',
+                'registrationType',
+                'verificationCode',
+                'cookie'
+            ]
+        });
+
+        // 设置响应头
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename=accounts.csv');
+        
+        // 发送CSV数据
+        res.send(csvData);
+        
+        logger.info('账号数据已导出为CSV');
+    } catch (error) {
+        logger.error('导出账号数据失败:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: '导出账号数据失败',
+            message: error.message 
+        });
+    }
+});
+
+// 从CSV导入账号
+router.post('/import', async (req, res) => {
+    try {
+        const csvData = req.body.csvData;
+        
+        // 解析CSV数据
+        const records = csv.parse(csvData, {
+            columns: true,
+            skip_empty_lines: true
+        });
+
+        const importedAccounts = [];
+        const errors = [];
+
+        // 验证并导入每个账号
+        for (const record of records) {
+            try {
+                // 验证必填字段
+                if (!record.email || !record.password || !record.username) {
+                    throw new Error('邮箱、密码和用户名为必填项');
+                }
+
+                // 验证状态是否有效
+                if (record.status && !Object.values(AccountDataHandler.AccountStatus).includes(record.status)) {
+                    throw new Error('无效的账号状态');
+                }
+
+                // 检查邮箱是否已存在
+                const accounts = await accountDataHandler.readRecords();
+                if (accounts.some(a => a.email === record.email)) {
+                    throw new Error('该邮箱已存在');
+                }
+
+                // 创建新记录
+                const newRecord = {
+                    ...record,
+                    status: record.status || AccountDataHandler.AccountStatus.CREATED,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+
+                await accountDataHandler.appendRecord(newRecord);
+                importedAccounts.push(newRecord);
+
+                // 通过 WebSocket 发送账号创建消息
+                broadcastMessage({
+                    type: 'account_created',
+                    data: {
+                        account: {
+                            username: newRecord.username,
+                            email: newRecord.email,
+                            status: newRecord.status,
+                            createdAt: newRecord.createdAt
+                        }
+                    }
+                });
+
+            } catch (error) {
+                errors.push({
+                    email: record.email,
+                    error: error.message
+                });
+                logger.error(`导入账号失败 ${record.email}:`, error);
+            }
+        }
+
+        res.json({
+            success: true,
+            data: {
+                total: records.length,
+                imported: importedAccounts.length,
+                failed: errors.length,
+                accounts: importedAccounts,
+                errors: errors
+            }
+        });
+
+    } catch (error) {
+        logger.error('导入账号数据失败:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: '导入账号数据失败',
             message: error.message 
         });
     }

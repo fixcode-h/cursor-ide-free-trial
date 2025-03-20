@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const { fork } = require('child_process');
 const net = require('net');
+const fs = require('fs').promises;
 
 // 设置应用根目录和资源目录
 global.appRoot = process.env.NODE_ENV === 'development'
@@ -289,27 +290,35 @@ app.on('activate', () => {
 
 // 设置IPC通信
 function setupIPC() {
-    // 处理文件选择对话框
-    ipcMain.handle('select-file', async (event, options) => {
-        try {
-            const result = await dialog.showOpenDialog({
-                properties: ['openFile'],
-                filters: options.filters,
-                title: options.title
-            });
+    // 显示文件选择对话框
+    ipcMain.handle('showOpenDialog', async (event, options) => {
+        return dialog.showOpenDialog(mainWindow, options);
+    });
 
-            return {
-                success: !result.canceled && result.filePaths.length > 0,
-                data: result.filePaths[0] || null,
-                error: result.canceled ? '未选择文件' : null
-            };
+    // 显示文件保存对话框
+    ipcMain.handle('showSaveDialog', async (event, options) => {
+        return dialog.showSaveDialog(mainWindow, options);
+    });
+
+    // 读取文件内容
+    ipcMain.handle('readFile', async (event, filePath) => {
+        try {
+            const content = await fs.readFile(filePath, 'utf8');
+            return content;
         } catch (error) {
-            console.error('File selection error:', error);
-            return {
-                success: false,
-                data: null,
-                error: error.message
-            };
+            console.error('读取文件失败:', error);
+            throw error;
+        }
+    });
+
+    // 写入文件内容
+    ipcMain.handle('writeFile', async (event, filePath, content) => {
+        try {
+            await fs.writeFile(filePath, content, 'utf8');
+            return true;
+        } catch (error) {
+            console.error('写入文件失败:', error);
+            throw error;
         }
     });
 } 

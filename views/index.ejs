@@ -67,6 +67,8 @@
                                 <button class="btn btn-secondary" id="refreshAccounts">刷新列表</button>
                                 <button class="btn btn-primary" id="addManualAccount">手动登记账号</button>
                                 <button class="btn btn-success" id="quickGenerateAccount">生成/绑定账号</button>
+                                <button class="btn btn-info" id="exportAccounts">导出账号</button>
+                                <button class="btn btn-warning" id="importAccounts">导入账号</button>
                             </div>
                             <div class="table-responsive">
                                 <table class="table table-striped table-hover">
@@ -214,6 +216,64 @@
                                 <div class="modal-footer border-secondary" style="border-color: #404040;">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
                                     <button type="button" class="btn btn-primary" id="saveManualAccount">保存</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 导入账号模态框 -->
+                    <div class="modal fade" id="importAccountsModal" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content" style="background-color: #1a1a1a; border-color: #404040;">
+                                <div class="modal-header border-secondary" style="border-color: #404040;">
+                                    <h5 class="modal-title text-light">导入账号</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="alert alert-dark bg-dark-subtle border-dark text-light" role="alert" style="background-color: #1a1a1a !important; border-color: #404040;">
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        请选择要导入的CSV文件，文件格式：username,email,password,firstname,lastname,status,registrationType,verificationCode,cookie
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="importFile" class="form-label text-light">选择CSV文件</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control bg-dark text-light border-secondary" id="importFile" readonly style="background-color: #2a2a2a; border-color: #404040;">
+                                            <button class="btn btn-outline-secondary" type="button" id="selectImportFileBtn">选择文件</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer border-secondary" style="border-color: #404040;">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                    <button type="button" class="btn btn-primary" id="confirmImportBtn">开始导入</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 导出账号模态框 -->
+                    <div class="modal fade" id="exportAccountsModal" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content" style="background-color: #1a1a1a; border-color: #404040;">
+                                <div class="modal-header border-secondary" style="border-color: #404040;">
+                                    <h5 class="modal-title text-light">导出账号</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="alert alert-dark bg-dark-subtle border-dark text-light" role="alert" style="background-color: #1a1a1a !important; border-color: #404040;">
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        请选择导出CSV文件的保存位置
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="exportFile" class="form-label text-light">保存位置</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control bg-dark text-light border-secondary" id="exportFile" readonly style="background-color: #2a2a2a; border-color: #404040;">
+                                            <button class="btn btn-outline-secondary" type="button" id="selectExportFileBtn">选择位置</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer border-secondary" style="border-color: #404040;">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                    <button type="button" class="btn btn-primary" id="confirmExportBtn">开始导出</button>
                                 </div>
                             </div>
                         </div>
