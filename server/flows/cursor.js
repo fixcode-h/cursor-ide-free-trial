@@ -412,13 +412,13 @@ class Cursor {
                     'accept-language': 'en-US,en;q=0.9',
                     'cookie': `NEXT_LOCALE=en; WorkosCursorSessionToken=${sessionCookie}`,
                     'referer': 'https://www.cursor.com/settings',
-                    'sec-ch-ua': '"Not A(Brand";v="8", "Chromium";v="132", "Google Chrome";v="132"',
+                    'sec-ch-ua': this.humanBehavior.getRandomSecChUa(),
                     'sec-ch-ua-mobile': '?0',
                     'sec-ch-ua-platform': '"Windows"',
                     'sec-fetch-dest': 'empty',
                     'sec-fetch-mode': 'cors',
                     'sec-fetch-site': 'same-origin',
-                    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36'
+                    'user-agent': this.humanBehavior.getRandomUserAgent()
                 }
             };
 
