@@ -104,15 +104,15 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('selectChromePathBtn').addEventListener('click', async () => {
         try {
             // 使用 IPC 通信选择文件
-            const result = await window.electron.ipcRenderer.invoke('select-file', {
+            const result = await window.electron.showOpenDialog({
                 title: '选择Chrome可执行文件',
                 filters: [
                     { name: 'Chrome Executable', extensions: ['exe'] }
                 ]
             });
 
-            if (result.success && result.data) {
-                const filePath = result.data;
+            if (!result.canceled && result.filePaths.length > 0) {
+                const filePath = result.filePaths[0];
                 document.getElementById('browserExecutablePath').value = filePath;
                 appendToConsole('success', '已选择Chrome可执行文件: ' + filePath);
             }
@@ -249,5 +249,92 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
+
+    // 导出设置按钮点击事件
+    document.getElementById('exportConfigBtn').addEventListener('click', async () => {
+        try {
+            const result = await window.electron.showSaveDialog({
+                filters: [
+                    { name: 'YAML Files', extensions: ['yaml', 'yml'] }
+                ],
+                defaultPath: 'config.yaml'
+            });
+
+            if (!result.canceled && result.filePath) {
+                // 获取配置数据
+                const response = await fetch('/api/config/export');
+                const yamlContent = await response.text();
+                
+                // 保存到文件
+                await window.electron.writeFile(result.filePath, yamlContent);
+                appendToConsole('success', '设置已导出到: ' + result.filePath);
+            }
+        } catch (error) {
+            appendToConsole('error', '导出设置失败: ' + error.message);
+        }
+    });
+
+    // 导入设置按钮点击事件
+    document.getElementById('importConfigBtn').addEventListener('click', () => {
+        const importModal = new bootstrap.Modal(document.getElementById('importConfigModal'));
+        importModal.show();
+    });
+
+    // 选择导入配置文件按钮点击事件
+    document.getElementById('selectImportConfigFileBtn').addEventListener('click', async () => {
+        try {
+            const result = await window.electron.showOpenDialog({
+                filters: [
+                    { name: 'YAML Files', extensions: ['yaml', 'yml'] }
+                ]
+            });
+
+            if (!result.canceled && result.filePaths.length > 0) {
+                document.getElementById('importFile').value = result.filePaths[0];
+            }
+        } catch (error) {
+            appendToConsole('error', '选择文件失败: ' + error.message);
+        }
+    });
+
+    // 确认导入按钮点击事件
+    document.getElementById('confirmImportConfigBtn').addEventListener('click', async () => {
+        const filePath = document.getElementById('importFile').value;
+        if (!filePath) {
+            appendToConsole('error', '请先选择要导入的配置文件');
+            return;
+        }
+
+        try {
+            // 读取配置文件内容
+            const yamlContent = await window.electron.readFile(filePath);
+            
+            // 发送导入请求
+            const response = await fetch('/api/config/import', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ yamlContent })
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                appendToConsole('success', '设置导入成功');
+                
+                // 重新加载配置
+                await loadConfig();
+                
+                // 关闭模态框
+                const importModal = bootstrap.Modal.getInstance(document.getElementById('importConfigModal'));
+                importModal.hide();
+            } else {
+                throw new Error(result.error || '导入失败');
+            }
+        } catch (error) {
+            appendToConsole('error', '导入设置失败: ' + error.message);
+        }
+    });
 
 }); 

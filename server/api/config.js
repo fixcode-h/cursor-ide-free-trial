@@ -4,6 +4,7 @@ const { getConfig, updateConfig } = require('../utils/config');
 const logger = require('../utils/logger');
 const path = require('path');
 const fs = require('fs');
+const yaml = require('js-yaml');
 
 // 获取服务基础信息
 router.get('/info', (req, res) => {
@@ -58,6 +59,43 @@ router.post('/', (req, res) => {
     } catch (error) {
         logger.error('Error updating configuration:', error);
         res.status(500).json({ success: false, error: 'Failed to update configuration' });
+    }
+});
+
+// 导出配置
+router.get('/export', (req, res) => {
+    try {
+        const config = getConfig();
+        const yamlContent = yaml.dump(config, {
+            indent: 2,
+            lineWidth: -1
+        });
+        res.setHeader('Content-Type', 'text/yaml');
+        res.setHeader('Content-Disposition', 'attachment; filename=config.yaml');
+        res.send(yamlContent);
+    } catch (error) {
+        logger.error('Error exporting configuration:', error);
+        res.status(500).json({ success: false, error: 'Failed to export configuration' });
+    }
+});
+
+// 导入配置
+router.post('/import', (req, res) => {
+    try {
+        const yamlContent = req.body.yamlContent;
+        const newConfig = yaml.load(yamlContent);
+        
+        // 验证配置格式
+        if (!newConfig || typeof newConfig !== 'object') {
+            throw new Error('Invalid configuration format');
+        }
+
+        // 更新配置
+        updateConfig(newConfig);
+        res.json({ success: true, message: 'Configuration imported successfully' });
+    } catch (error) {
+        logger.error('Error importing configuration:', error);
+        res.status(500).json({ success: false, error: 'Failed to import configuration: ' + error.message });
     }
 });
 
