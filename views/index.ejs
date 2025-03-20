@@ -232,7 +232,7 @@
                                 <div class="modal-body">
                                     <div class="alert alert-dark bg-dark-subtle border-dark text-light" role="alert" style="background-color: #1a1a1a !important; border-color: #404040;">
                                         <i class="bi bi-info-circle me-2"></i>
-                                        请选择要导入的CSV文件，文件格式：username,email,password,firstname,lastname,status,registrationType,verificationCode,cookie
+                                        请选择要导入的CSV文件
                                     </div>
                                     <div class="mb-3">
                                         <label for="importFile" class="form-label text-light">选择CSV文件</label>
@@ -685,11 +685,8 @@
                                         </div>
 
                                         <div class="row">
-                                            <div class="col-6">
+                                            <div class="col-12">
                                                 <button type="submit" class="btn btn-primary w-100">保存设置</button>
-                                            </div>
-                                            <div class="col-6">
-                                                <button type="button" class="btn btn-secondary w-100" id="resetSettings">重置设置</button>
                                             </div>
                                         </div>
                                     </form>
@@ -726,23 +723,27 @@
     <!-- 导入设置模态框 -->
     <div class="modal fade" id="importConfigModal" tabindex="-1" aria-labelledby="importConfigModalLabel" aria-hidden="true">
         <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="importConfigModalLabel">导入设置</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-content" style="background-color: #1a1a1a; border-color: #404040;">
+                <div class="modal-header border-secondary" style="border-color: #404040;">
+                    <h5 class="modal-title text-light" id="importConfigModalLabel">导入设置</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
+                    <div class="alert alert-dark bg-dark-subtle border-dark text-light" role="alert" style="background-color: #1a1a1a !important; border-color: #404040;">
+                        <i class="bi bi-info-circle me-2"></i>
+                        请选择要导入的配置文件（YAML格式）
+                    </div>
                     <div class="mb-3">
-                        <label for="importFile" class="form-label">选择配置文件</label>
+                        <label for="importFile" class="form-label text-light">选择配置文件</label>
                         <div class="input-group">
-                            <input type="text" class="form-control" id="importFile" readonly>
-                            <button class="btn btn-outline-secondary" type="button" id="selectImportConfigFileBtn">
+                            <input type="text" class="form-control bg-dark text-light border-secondary" id="importFile" readonly style="background-color: #2a2a2a; border-color: #404040;">
+                            <button class="btn btn-outline-secondary text-light" type="button" id="selectImportConfigFileBtn">
                                 <i class="bi bi-folder"></i> 选择文件
                             </button>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer border-secondary" style="border-color: #404040;">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
                     <button type="button" class="btn btn-primary" id="confirmImportConfigBtn">确认导入</button>
                 </div>
