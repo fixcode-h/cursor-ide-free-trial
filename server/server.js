@@ -33,7 +33,7 @@ async function startServer(port) {
 
     // 路由设置
     appServer.get('/', (req, res) => {
-        res.render('index', { title: 'AI IDE Free Trial' });
+        res.render('index', { title: 'Cursor IDE Free Trial' });
     });
 
     // API 路由
