@@ -148,6 +148,13 @@ document.addEventListener('DOMContentLoaded', function() {
         appendToConsole('info', '已生成新的随机指纹种子');
     });
 
+    // 处理指纹种子每次随机
+    document.getElementById('alwaysRandomFingerprintBtn').addEventListener('click', () => {
+        const input = document.getElementById('browserFingerprintSeed');
+        input.value = '0';
+        appendToConsole('info', '已设置为每次启动随机生成指纹种子');
+    });
+
     // 监听随机指纹复选框变化
     document.getElementById('browserFingerprintRandom').addEventListener('change', function(event) {
         const seedInput = document.getElementById('browserFingerprintSeed');

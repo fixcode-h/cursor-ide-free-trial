@@ -90,7 +90,7 @@ class BrowserInitializer {
                     let fingerprintSeed;
                     const configSeed = this.config.browser.fingerprintSeed;
                     
-                    if (configSeed !== undefined && configSeed !== null && configSeed !== '') {
+                    if (configSeed !== undefined && configSeed !== 0 && configSeed !== null && configSeed !== '') {
                         // 如果是字符串，尝试解析为数字
                         fingerprintSeed = typeof configSeed === 'string' ? parseInt(configSeed) : configSeed;
                     } else {
