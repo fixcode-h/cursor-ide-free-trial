@@ -278,28 +278,59 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('importConfigBtn').addEventListener('click', () => {
         const importModal = new bootstrap.Modal(document.getElementById('importConfigModal'));
         importModal.show();
+        
+        // 确保模态框完全显示后再初始化输入框
+        importModal._element.addEventListener('shown.bs.modal', () => {
+            const importFileInput = document.getElementById('configImportFile');
+            if (importFileInput) {
+                importFileInput.value = '';
+            }
+        });
     });
 
     // 选择导入配置文件按钮点击事件
     document.getElementById('selectImportConfigFileBtn').addEventListener('click', async () => {
         try {
+            console.log('开始选择文件...');
             const result = await window.electron.showOpenDialog({
                 filters: [
                     { name: 'YAML Files', extensions: ['yaml', 'yml'] }
-                ]
+                ],
+                properties: ['openFile']
             });
 
+            console.log('文件选择结果:', result);
+
             if (!result.canceled && result.filePaths.length > 0) {
-                document.getElementById('importFile').value = result.filePaths[0];
+                const filePath = result.filePaths[0];
+                console.log('选择的文件路径:', filePath);
+                
+                const importFileInput = document.getElementById('configImportFile');
+                console.log('找到的输入框元素:', importFileInput);
+                
+                if (importFileInput) {
+                    // 直接设置值
+                    importFileInput.value = filePath;
+                    console.log('设置后的输入框值:', importFileInput.value);
+                    
+                    // 手动触发 input 和 change 事件
+                    importFileInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    importFileInput.dispatchEvent(new Event('change', { bubbles: true }));
+                } else {
+                    console.error('未找到导入文件输入框元素');
+                }
+            } else {
+                console.log('用户取消了文件选择或未选择文件');
             }
         } catch (error) {
+            console.error('选择文件时发生错误:', error);
             appendToConsole('error', '选择文件失败: ' + error.message);
         }
     });
 
     // 确认导入按钮点击事件
     document.getElementById('confirmImportConfigBtn').addEventListener('click', async () => {
-        const filePath = document.getElementById('importFile').value;
+        const filePath = document.getElementById('configImportFile').value;
         if (!filePath) {
             appendToConsole('error', '请先选择要导入的配置文件');
             return;
