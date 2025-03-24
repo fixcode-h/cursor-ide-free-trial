@@ -62,7 +62,6 @@ async function updateLicenseInfo() {
                 </div>`;
 
         // 显示用户信息和授权信息
-        const info = status.licenseInfo || {};
         html += `
             <div class="card mb-3">
                 <div class="card-header">编辑器登录信息</div>
@@ -95,15 +94,11 @@ async function updateLicenseInfo() {
                     <div class="list-group">
                         <div class="list-group-item bg-dark-subtle border-dark text-light d-flex justify-content-between align-items-center" style="background-color: #1a1a1a !important; border-color: #404040;">
                             <span class="label" style="color: #8a8a8a;">用户名</span>
-                            <span class="value" style="color: #ffffff;">${info.username || '未设置'}</span>
-                        </div>
-                        <div class="list-group-item bg-dark-subtle border-dark text-light d-flex justify-content-between align-items-center" style="background-color: #1a1a1a !important; border-color: #404040;">
-                            <span class="label" style="color: #8a8a8a;">授权类型</span>
-                            <span class="value" style="color: #ffffff;">${info.type || '未知'}</span>
+                            <span class="value" style="color: #ffffff;">${userInfo?.username || '未设置'}</span>
                         </div>
                         <div class="list-group-item bg-dark-subtle border-dark text-light d-flex justify-content-between align-items-center" style="background-color: #1a1a1a !important; border-color: #404040;">
                             <span class="label" style="color: #8a8a8a;">过期时间</span>
-                            <span class="value" style="color: #ffffff;">${info.expiryDate ? new Date(info.expiryDate).toLocaleString() : '未设置'}</span>
+                            <span class="value" style="color: #ffffff;">${userInfo?.expireTime ? new Date(userInfo.expireTime).toLocaleString() : '未设置'}</span>
                         </div>
                         <div class="list-group-item bg-dark-subtle border-dark text-light d-flex justify-content-between align-items-center" style="background-color: #1a1a1a !important; border-color: #404040;">
                             <span class="label" style="color: #8a8a8a;">剩余可创建账号</span>
