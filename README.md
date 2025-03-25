@@ -1,100 +1,29 @@
 # 🚀 Cursor IDE Free Trial
 
-[中文版](README_CN.md)
+[中文版本](README_CN.md)
 
 ![Cursor IDE Free Trial Screenshot](doc/images/screenshot.png)
 
-🎯 Cursor IDE Free Trial is a utility tool designed to help users conveniently experience the trial version of Cursor IDE. This tool primarily addresses machine code verification issues during the trial process and provides streamlined email and account management features.
+🎯 AI IDE Free Trial is a utility tool designed to help users better experience the trial version of Cursor IDE. This tool primarily addresses machine code verification issues during the trial period and provides convenient email and account management features.
 
 ## ✨ Project Introduction
 
-This project is an Electron-based auxiliary tool focused on optimizing the trial experience of Cursor IDE. Main features include:
-- 🔑 Resolve machine code verification issues
-- 📧 Provide convenient email management functionality
-- 👤 Simplify account management process
-- ⚡ Optimize trial experience
+This project is an Electron-based utility tool focused on optimizing the Cursor IDE trial experience. Unlike other tools that only provide partial implementation or rely on commercial/restricted backend APIs, this tool offers a complete open-source implementation of the entire process from email handling to registration, login, and account switching. After configuration, users can achieve truly unrestricted trial usage.
 
-⚠️ **Important Note:** If you find Cursor IDE meets your needs during the trial period, we strongly recommend purchasing the official version for a complete service experience.
+Main features include:
+- 🔑 Resolving machine code verification issues
+- 📧 Providing convenient email sending and receiving functionality
+- 👤 Simplifying account management process
+- ⚡ Optimizing trial experience
+
+⚠️ **Important Note:** If you find Cursor IDE meets your needs during the trial, we strongly recommend purchasing the official version for a complete service experience.
 
 🖥️ **Platform Support:**
-- ✅ Windows: Fully supported
-- 🚧 macOS: Under development
-- 🚧 Linux: Under development
+- ✅ Windows: Full support
+- 🚧 macOS: In development
+- 🚧 Linux: In development
 
-## 🛠️ Tech Stack
-
-### 🖥️ Desktop App
-- ⚛️ Electron v33.0.0: Cross-platform desktop application development framework
-- 🟢 Node.js: Runtime environment
-- 📝 JavaScript/TypeScript: Main development language
-
-### 🔧 Local Server
-- 🌐 Express.js: Web application framework
-- 🔄 WebSocket: Real-time communication
-- 📄 EJS: Template engine
-- 💾 SQLite: Local data storage
-- 🤖 Puppeteer: Browser automation
-- 🌍 Axios: HTTP client
-
-## 💫 Features
-
-- 📨 Email service integration
-- 🎨 Modern user interface
-- 👥 Account management system
-- 🔄 Real-time communication support
-- 💾 Local data persistence
-- 🤖 Browser automation capabilities
-
-## 📦 Installation Guide
-
-### 💻 System Requirements
-
-- Windows 10 or higher (currently only Windows platform is supported)
-
-⚠️ **Note:** Support for macOS and Linux platforms is under development
-
-### 🔧 Installation Steps
-
-1. 📥 Download the software:
-   - Download the latest version from the releases page https://github.com/chawuciren/cursor-ide-free-trial/releases
-
-2. ⚙️ Install the program:
-   - Extract the downloaded zip file to the specified directory
-   - Run `Cursor_IDE_Free_Trial.exe` with administrator privileges
-
-### 📝 Usage Guide
-
-#### ⚙️ Configuration Guide
-
-1. **🌐 Network Proxy Configuration**
-   - Go to the "Settings" tab
-   - Check "Enable Proxy"
-   - Fill in proxy host and port information
-   - Click "Save Settings" to confirm changes
-
-2. **📧 Email Service Configuration**
-   - Check "Use Proxy" to ensure email service stability
-   - Choose one of the following email configuration methods:
-
-   A. IMAP Method (Recommended):
-      - Prerequisites: Configure Cloudflare domain email forwarding ([Detailed Guide](doc/cloudflare-email-setup.md))
-      - Configuration steps:
-        * Select Gmail as the receiving email (recommended)
-        * Fill in the complete receiving email address
-        * Fill in the email app password (Gmail requires app-specific password)
-        * Check "Enable IMAP"
-        * Set IMAP host to: imap.gmail.com
-        * Set IMAP port to: 993
-
-   B. TempMail Method:
-      - Prerequisites: Understand TempMail service usage ([Detailed Guide](doc/tempmail-setup.md))
-      - Configuration steps:
-        * Set preferred email domain (must match TempMail definition)
-        * Check "Custom Username" option
-        * Fill in username set in TempMail
-        * Fill in corresponding PIN code
-
-## 🛠️ Tech Stack
+## 🛠️ Technology Stack
 
 ### 🖥️ Desktop App
 - ⚛️ Electron v33.0.0: Cross-platform desktop application framework
@@ -116,72 +45,118 @@ This project is an Electron-based auxiliary tool focused on optimizing the trial
 - 👥 Account management system
 - 🔄 Real-time communication support
 - 💾 Local data persistence
-- 🤖 Browser automation features
+- 🤖 Browser automation functionality
 
 ## 📦 Installation Guide
 
 ### 💻 System Requirements
 
-- Windows 10 or higher (Currently Windows-only)
+- Windows 10 or higher (Currently only Windows platform is supported)
 
 ⚠️ **Note:** Support for macOS and Linux platforms is under development
 
 ### 🔧 Installation Steps
 
-1. 📥 Download:
-   - Download the latest version zip package from the release page (e.g., `v1.2.0-win64.zip`)
+1. 📥 Download the software:
+   - Download the latest version from the releases page https://github.com/chawuciren/cursor-ide-free-trial/releases
 
-2. ⚙️ Installation:
-   - Extract the downloaded zip package to your desired directory
-   - Run `AI_IDE_Free_Trial.exe` with administrator privileges
+2. ⚙️ Install the program:
+   - Extract the downloaded archive to a specified directory
+   - Run `Cursor_IDE_Free_Trial.exe` with administrator privileges from the extracted directory
 
-### 📝 Usage Guide
+### 📝 Usage Instructions
 
-1. ⚙️ Basic Configuration:
-   After running the software, go to the "Settings" tab and configure the following:
+#### ⚙️ Configuration Guide
 
-   **🌐 Proxy Settings:**
+1. **🌐 Network Proxy Configuration**
+   - Go to the "Settings" tab
    - Check "Enable Proxy"
-   - Fill in your proxy host and port information
+   - Fill in proxy host and port information
+   - Click "Save Settings" to confirm changes
 
-   **📧 Email Settings:**
-   - Check "Use Proxy"
-   - Select "Public API Pool" as type
-   - Set API endpoint to: `https://emailapi.goaiwork.online`
-   - Keep other email settings as default
+2. **📧 Email Service Configuration**
+   - Check "Use Proxy" to ensure email service stability
+   - Choose one of the following email configuration methods:
 
-   **📝 Registration Settings:**
-   - Select "cursor" as registration type
+   A. IMAP Method (Recommended):
+      - Prerequisites: Configure Cloudflare domain email forwarding ([Detailed instructions](doc/cloudflare-email-setup-cn.md))
+      - Configuration steps:
+        * Choose Gmail as receiving mailbox (recommended)
+        * Enter complete receiving email address
+        * Enter email application password (Gmail requires app-specific password)
+        * Enable "Enable IMAP"
+        * Set IMAP host to: imap.gmail.com
+        * Set IMAP port to: 993
 
-   **🌍 Browser Settings:**
-   - Check "Enable Proxy"
-   - Recommended to enable "Check Browser Fingerprint"
-   - Not recommended to enable "Headless Mode" (may cause verification code issues)
-   - If you have a fingerprint browser, you can specify its executable path
+   B. TempMail Method:
+      - Prerequisites: Understand TempMail service usage ([Detailed instructions](doc/tempmail-setup-cn.md))
+      - Configuration steps:
+        * Set preferred email domain (must match TempMail definition)
+        * Check "Custom Username" option
+        * Enter username set in TempMail
+        * Enter corresponding PIN code
 
-2. 🔐 Authorization:
-   To use the convenient public API pool for email services, you need to obtain authorization first:
-   - Get your machine code
-   - Apply for authorization through one of the following methods:
-     - Discord: [Join our Discord community](https://discord.gg/wTjdGqNP)
-     - WeChat: Join our WeChat group
-       
-       ![WeChat Group](doc/wechat.png)
-   - Provide your machine code to administrators and wait for authorization
+3. **🌍 Browser Configuration**
+   - Basic settings:
+     * Check "Enable Proxy" for network access
+     * Recommended to enable "Check Browser Fingerprint"
+     * Recommended to disable "Headless Mode" (to avoid CAPTCHA issues)
+   
+   - Fingerprint browser configuration (recommended):
+     * Download and install [fingerprint-chromium](https://github.com/adryfish/fingerprint-chromium)
+     * Locate chrome.exe installation path
+     * Fill in "Chrome Executable Path"
+     * Enable fingerprint features as needed
 
-3. 🔄 Usage Flow:
-   - Click "Save Settings" after configuration
-   - You can use the "One-Click Account Switch" tab for quick account switching
-   - Or perform operations step by step in other tabs:
-     - **📧 Email Binding**: Generate new email account and bind email routing
-     - **👤 Account Registration**: Register account using the bound email
-     - **🔑 Account Login**: Login with registered account and switch IDE account
+4. **📝 Registration Configuration**
+   - Set registration type to "cursor"
+   - Ensure all configuration items are completed
+   - Click "Save Settings" to save all configurations
 
-### Development Setup
+#### 🔄 Usage Process
+
+1. **Quick Usage Method**
+   - After completing all configurations, you can use the "One-Click Account Switch" feature
+   - Click start in the "One-Click Switch" tab to automatically complete the entire process
+
+2. **Step-by-Step Operation**
+   A. Open Account List:
+      - Go to "Account List" tab
+      - Manage all account-related operations on this page
+
+   B. Email Binding:
+      - Click "Generate/Bind Account" button in the account list page
+      - Wait for email generation and route binding to complete
+      - Check binding status for confirmation
+
+   C. Account Registration:
+      - Find the account to register in the account list
+      - Click the "Actions" dropdown menu for that account
+      - Select "Account Registration" option
+      - Wait for automatic registration process to complete
+      - System will automatically save the registered account information
+
+   D. Account Login:
+      - Find the account to log in from the account list
+      - Click the "Actions" dropdown menu for that account
+      - Select "Account Login" option
+      - System will automatically perform:
+        * Account login
+        * Machine code reset
+        * IDE account switching
+      - Wait for operations to complete
+
+3. **Important Notes**
+   - Ensure network proxy is stable and available
+   - Keep software running in background until operations complete
+   - Regularly check configuration status
+   - Check logs for troubleshooting
+
+### Development Environment Setup
 
 ```bash
-# Clone the repository
-git clone [repository URL]
+# Clone project
+git clone [project URL]
 
 # Install main app dependencies
 npm install
@@ -190,49 +165,51 @@ npm install
 cd server
 npm install
 cd ..
-
-# Start development environment
-npm run dev
-
-# Start in Windows environment
-npm run dev:win
-
-# Build the application
-npm run build
 ```
 
-Node.js Environment Configuration for Packaging:
+Node.js environment configuration for packaging:
    - Download Node.js runtime for your platform
    - Root directory configuration:
      - Windows: Name Node.js environment folder as `node_win32`
      - macOS: Name Node.js environment folder as `node_darwin`
      - Linux: Name Node.js environment folder as `node_linux`
    - Server directory configuration:
-     - Copy current system's Node.js environment to `server` directory, rename as `node`
+     - Copy Node.js environment corresponding to current system to `server` directory, named uniformly as `node`
      - Example: On Windows, copy `node_win32` to `server/node`
 
-Directory Structure Example:
+```bash
+# Start development environment
+npm run dev
+
+# Start on Windows
+npm run dev:win
+
+# Build application
+npm run build
+```
+
+Directory structure example:
    ```
-   root/
+   Project Root/
    ├── node_win32/     # Windows Node.js environment
    ├── node_darwin/    # macOS Node.js environment
    ├── node_linux/     # Linux Node.js environment
    └── server/
-       └── node/       # Current system's Node.js environment (for debugging)
+       └── node/       # Current system Node.js environment (for debugging)
    ```
 
 ## Project Structure
 
 ```
 .
-├── src/            # Desktop app source code
+├── src/            # Desktop application source code
 ├── public/         # Static resources
 ├── views/          # View files
 ├── server/         # Local server
 │   ├── api/        # API routes
-│   ├── flows/      # Business logic
+│   ├── flows/      # Business flows
 │   ├── utils/      # Utility functions
-│   ├── node/       # Current system's Node.js environment (for debugging)
+│   ├── node/       # Current system Node.js environment (for debugging)
 │   ├── app.js      # Application configuration
 │   └── server.js   # Server entry point
 ├── scripts/        # Build and utility scripts
@@ -245,7 +222,7 @@ Directory Structure Example:
 
 ## Dependencies
 
-### Desktop App
+### Desktop Application
 - [Electron](https://www.electronjs.org/): For building cross-platform desktop applications
 - [Node.js](https://nodejs.org/): JavaScript runtime
 - [electron-builder](https://www.electron.build/): Electron application packaging tool
@@ -258,12 +235,12 @@ Directory Structure Example:
 - [Nodemailer](https://nodemailer.com/): Email sending
 - [EJS](https://ejs.co/): Embedded JavaScript templating
 
-## Configuration
+## Configuration Details
 
 ### Node.js Environment Configuration
 - Runtime requirements: Node.js 14.0.0 or higher
-- For development debugging, ensure the `server/node` directory contains the Node.js environment for your current system
-- In production, the appropriate Node.js environment (node_win32/node_darwin/node_linux) will be automatically selected based on the user's system
+- For development debugging, ensure `server/node` directory contains Node.js environment for current system
+- Production environment automatically selects corresponding Node.js environment (node_win32/node_darwin/node_linux)
 
 ### Server Configuration
 - Default port: 3000 (can be modified via startup parameters)
@@ -276,16 +253,16 @@ Issues and Pull Requests are welcome to help improve the project.
 
 ## License
 
-This project is open-sourced under the ISC License.
+This project is open-source under the ISC license.
 
 ## Acknowledgments
 
-Thanks to the following open source projects and communities:
+Thanks to the following open-source projects and communities:
 
-- Electron Community
-- Node.js Community
-- Express.js Community
-- SQLite Community
+- Electron community
+- Node.js community
+- Express.js community
+- SQLite community
 - All project contributors
 
 ## Author
@@ -295,4 +272,4 @@ Guinea Pig Special Forces
 ## Version History
 
 - Desktop App: v1.1.6
-- Server: v1.1.2 
+- Server: v1.1.2
