@@ -44,9 +44,6 @@ class Cursor {
                 throw new Error('登录账号信息不完整');
             }
             logger.info('开始 Cursor 登录流程...');
-
-            // 启动 Cursor 到前台
-            logger.info('正在启动 Cursor...');
         
             // 创建新的页面
             page = await browser.newPage();
@@ -593,7 +590,8 @@ class Cursor {
         logger.info('开始更新 Cursor 认证信息...');
 
         const updates = [
-            ['cursorAuth/cachedSignUpType', 'Auth_0']
+            ['cursorAuth/cachedSignUpType', 'Auth_0'],
+            ['cursorAuth/stripeMembershipType', 'free_trial'],
         ];
 
         if (email !== null) {
@@ -875,75 +873,7 @@ class Cursor {
             const storagePath = this.getStoragePath();
             const configDir = this.getCursorConfigDir();
             
-            // 步骤3: 检查配置目录是否存在，存在则清理
-            const configDirExists = await fs.access(configDir).then(() => true).catch(() => false);
-            
-            if (configDirExists) {
-                logger.info('配置目录已存在，将清理整个配置目录...');
-                try {
-                    // 删除整个配置目录
-                    await fs.rm(configDir, { recursive: true, force: true });
-                    logger.info('已清理整个配置目录');
-                } catch (error) {
-                    logger.warn('清理配置目录时出错:', error.message);
-                }
-            } else {
-                logger.info('配置目录不存在，将创建新配置...');
-            }
-            
-            
-            // 步骤4: 启动Cursor生成配置文件
-            logger.info('将启动Cursor生成配置文件...');
-            
-            // 获取Cursor可执行文件路径
-            const cursorExecutable = this.getCursorExecutablePath();
-            
-            // 检查可执行文件是否存在
-            try {
-                await fs.access(cursorExecutable);
-            } catch (error) {
-                logger.error(`Cursor可执行文件不存在: ${cursorExecutable}`);
-                return false;
-            }
-            
-            // 启动Cursor进程
-            logger.info(`正在启动Cursor: ${cursorExecutable}`);
-            const cursorProcess = spawn(cursorExecutable, [], {
-                detached: true,
-                stdio: 'ignore'
-            });
-            
-            // 分离进程，让它在后台运行
-            cursorProcess.unref();
-            
-            // 等待配置文件生成，最多等待30秒
-            logger.info('等待配置文件生成...');
-            const maxWaitTime = 30000; // 30秒
-            const checkInterval = 1000; // 每秒检查一次
-            const startTime = Date.now();
-            
-            let configCreated = false;
-            while (Date.now() - startTime < maxWaitTime) {
-                // 检查配置文件是否存在
-                configCreated = await fs.access(storagePath).then(() => true).catch(() => false);
-                if (configCreated) {
-                    logger.info('配置文件已生成');
-                    break;
-                }
-                logger.info(`等待配置文件生成... (${Math.floor((Date.now() - startTime) / 1000)}秒)`);
-                await delay(checkInterval);
-            }
-            
-            // 终止新启动的Cursor进程
-            await this.killCursorProcess();
-            
-            // 检查配置文件是否已生成
-            if (!configCreated) {
-                logger.error('无法创建配置文件，启动Cursor后仍未生成storage.json');
-                return false;
-            }
-            
-            // 步骤5: 读取配置文件
+            // 步骤3: 读取配置文件
             logger.info('正在读取配置文件...');
             const configContent = await fs.readFile(storagePath, 'utf8');
             let config;
@@ -955,15 +885,15 @@ class Cursor {
                 return false;
             }
             
-            // 步骤6: 生成新的机器ID
+            // 步骤4: 生成新的机器ID
             logger.info('正在生成新的机器ID...');
             const newIds = this.generateNewMachineIds();
             
-            // 步骤7: 更新配置
+            // 步骤5: 更新配置
             logger.info('正在更新配置...');
             Object.assign(config, newIds);
             
-            // 步骤8: 写入新配置
+            // 步骤6: 写入新配置
             logger.info('正在写入新配置...');
             await fs.writeFile(storagePath, JSON.stringify(config, null, 2), 'utf8');
             
