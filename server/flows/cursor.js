@@ -115,15 +115,58 @@ class Cursor {
             await this.humanBehavior.simulateHumanBehavior(page);
 
             // 点击"Yes, Log In"按钮
-            const yesLoginButtonSelector = 'button:has-text("Yes, Log In")';
-            await page.waitForSelector(yesLoginButtonSelector);
-            await page.click(yesLoginButtonSelector);
-            logger.info('已点击"Yes, Log In"按钮');
-
-            // 等待页面跳转
-            await page.waitForNavigation().catch(() => {
-                logger.info('页面可能没有跳转，继续执行');
-            });
+            try {
+                // 等待main元素加载
+                await page.waitForSelector('main', { timeout: 10000 });
+                
+                // 获取main元素中的所有button
+                const buttons = await page.$$('main button');
+                logger.info(`找到 ${buttons.length} 个按钮`);
+                
+                // 打印所有按钮的文本内容，用于调试
+                for (let i = 0; i < buttons.length; i++) {
+                    const buttonText = await buttons[i].evaluate(el => el.textContent.trim());
+                    logger.info(`按钮 ${i+1} 文本: "${buttonText}"`);
+                }
+                
+                // 查找包含"Yes, Log In"文本的按钮
+                let targetButton = null;
+                for (const button of buttons) {
+                    const buttonText = await button.evaluate(el => el.textContent.trim());
+                    if (buttonText.includes('Yes, Log In')) {
+                        targetButton = button;
+                        logger.info(`找到目标按钮，文本: "${buttonText}"`);
+                        break;
+                    }
+                }
+                
+                if (targetButton) {
+                    await targetButton.click();
+                    logger.info('已点击"Yes, Log In"按钮');
+                } else {
+                    // 如果没找到包含文本的按钮，尝试查找包含span的按钮
+                    logger.info('未找到包含文本的按钮，尝试查找包含span的按钮');
+                    const buttonsWithSpan = await page.$$('main button span');
+                    
+                    for (let i = 0; i < buttonsWithSpan.length; i++) {
+                        const spanText = await buttonsWithSpan[i].evaluate(el => el.textContent.trim());
+                        logger.info(`Span ${i+1} 文本: "${spanText}"`);
+                        
+                        if (spanText.includes('Yes, Log In')) {
+                            // 点击span的父元素（按钮）
+                            await buttonsWithSpan[i].evaluate(el => {
+                                const button = el.closest('button');
+                                if (button) button.click();
+                            });
+                            logger.info('已点击包含"Yes, Log In"文本span的按钮');
+                            break;
+                        }
+                    }
+                }
+            } catch (error) {
+                logger.error(`无法找到或点击"Yes, Log In"按钮: ${error.message}`);
+                throw new Error('登录失败：无法找到或点击"Yes, Log In"按钮');
+            }
 
             // 返回浏览器和页面对象，以便后续操作
             return { browser, page };
@@ -497,105 +540,6 @@ class Cursor {
         }
 
         return dbPath;
-    }
-
-    async updateAuth(email = null, accessToken = null, refreshToken = null) {
-        logger.info('开始更新 Cursor 认证信息...');
-
-        const updates = [
-            ['cursorAuth/cachedSignUpType', 'Auth_0']
-        ];
-
-        if (email !== null) {
-            updates.push(['cursorAuth/cachedEmail', email]);
-        }
-        if (accessToken !== null) {
-            updates.push(['cursorAuth/accessToken', accessToken]);
-        }
-        if (refreshToken !== null) {
-            updates.push(['cursorAuth/refreshToken', refreshToken]);
-        }
-
-        if (updates.length === 1) {
-            logger.warn('没有提供任何要更新的值');
-            return false;
-        }
-
-        try {
-            const dbPath = await this.getDbPath();
-            
-            return new Promise((resolve, reject) => {
-                // 打开数据库连接
-                const db = new sqlite3.Database(dbPath, async (err) => {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-
-                    try {
-                        for (const [key, value] of updates) {
-                            // 检查键是否存在
-                            await new Promise((res, rej) => {
-                                db.get('SELECT COUNT(*) as count FROM itemTable WHERE key = ?', [key], async (err, row) => {
-                                    if (err) {
-                                        rej(err);
-                                        return;
-                                    }
-
-                                    try {
-                                        if (row.count === 0) {
-                                            // 插入新记录
-                                            await new Promise((resolve, reject) => {
-                                                db.run('INSERT INTO itemTable (key, value) VALUES (?, ?)', [key, value], (err) => {
-                                                    if (err) reject(err);
-                                                    else {
-                                                        logger.info(`插入新记录: ${key.split('/').pop()}`);
-                                                        resolve();
-                                                    }
-                                                });
-                                            });
-                                        } else {
-                                            // 更新现有记录
-                                            await new Promise((resolve, reject) => {
-                                                db.run('UPDATE itemTable SET value = ? WHERE key = ?', [value, key], function(err) {
-                                                    if (err) reject(err);
-                                                    else {
-                                                        if (this.changes > 0) {
-                                                            logger.info(`成功更新: ${key.split('/').pop()}`);
-                                                        } else {
-                                                            logger.warn(`未找到 ${key.split('/').pop()} 或值未变化`);
-                                                        }
-                                                        resolve();
-                                                    }
-                                                });
-                                            });
-                                        }
-                                        res();
-                                    } catch (error) {
-                                        rej(error);
-                                    }
-                                });
-                            });
-                        }
-
-                        db.close((err) => {
-                            if (err) {
-                                reject(err);
-                                return;
-                            }
-                            logger.info('认证信息更新完成');
-                            resolve(true);
-                        });
-                    } catch (error) {
-                        db.close(() => reject(error));
-                    }
-                });
-            });
-
-        } catch (error) {
-            logger.error('更新认证信息失败:', error);
-            return false;
-        }
     }
 
     /**
