@@ -44,24 +44,42 @@ class Cursor {
                 throw new Error('登录账号信息不完整');
             }
             logger.info('开始 Cursor 登录流程...');
-            
+
+            // 启动 Cursor 到前台
+            logger.info('正在启动 Cursor...');
+        
             // 创建新的页面
             page = await browser.newPage();
             logger.info('创建新页面');
             
-            // 构造登录链接并访问
-            const challenge = crypto.randomBytes(16).toString('base64url');
-            const uuid = crypto.randomUUID();
-            const loginUrl = `${this.url}/loginDeepControl?challenge=${challenge}&uuid=${uuid}&mode=login`;
-            logger.info(`访问登录链接: ${loginUrl}`);
-            await page.goto(loginUrl);
+            await page.goto(this.url);
+
+            // 模拟初始浏览行为
+            await this.humanBehavior.simulateHumanBehavior(page);
+            logger.info('完成初始人类行为模拟');
+
+            // 等待并点击登录按钮
+            const loginButtonSelector = 'a[href^="/api/auth/login"]';
+            await page.waitForSelector(loginButtonSelector);
+            await page.click(loginButtonSelector);
+            await page.waitForNavigation();
+            logger.info('已点击登录按钮并等待页面跳转完成');
+
+            // 模拟浏览行为
+            await this.humanBehavior.simulateHumanBehavior(page);
+
+            // 等待邮箱输入框出现，使用更精确的选择器
+            const emailSelector = 'input[type="email"][name="email"]';
+            await page.waitForSelector(emailSelector, {
+                visible: true,
+                timeout: 10000
+            });
 
             // 模拟初始浏览行为
             await this.humanBehavior.simulateHumanBehavior(page);
             logger.info('完成初始人类行为模拟');
 
             // 填写邮箱
-            const emailSelector = 'input[type="email"][placeholder="Your email address"]';
             await this.humanBehavior.simulateHumanTyping(page, emailSelector, account.email);
             logger.info('已填写邮箱');
 
@@ -104,69 +122,15 @@ class Cursor {
 
             // 验证是否成功跳转到loginDeepControl页面
             const currentUrl = page.url();
-            if (!currentUrl.includes('loginDeepControl')) {
-                logger.error('页面未跳转到loginDeepControl页面');
-                throw new Error('登录验证失败：未能进入loginDeepControl页面');
+            if (!currentUrl.includes('settings')) {
+                logger.error('页面未跳转到settings页面');
+                throw new Error('登录验证失败：未能进入settings页面');
             }
 
-            logger.info('登录验证成功：已进入loginDeepControl页面');
+            logger.info('登录验证成功：已进入settings页面');
 
             // 模拟浏览行为
             await this.humanBehavior.simulateHumanBehavior(page);
-
-            // 点击"Yes, Log In"按钮
-            try {
-                // 等待main元素加载
-                await page.waitForSelector('main', { timeout: 10000 });
-                
-                // 获取main元素中的所有button
-                const buttons = await page.$$('main button');
-                logger.info(`找到 ${buttons.length} 个按钮`);
-                
-                // 打印所有按钮的文本内容，用于调试
-                for (let i = 0; i < buttons.length; i++) {
-                    const buttonText = await buttons[i].evaluate(el => el.textContent.trim());
-                    logger.info(`按钮 ${i+1} 文本: "${buttonText}"`);
-                }
-                
-                // 查找包含"Yes, Log In"文本的按钮
-                let targetButton = null;
-                for (const button of buttons) {
-                    const buttonText = await button.evaluate(el => el.textContent.trim());
-                    if (buttonText.includes('Yes, Log In')) {
-                        targetButton = button;
-                        logger.info(`找到目标按钮，文本: "${buttonText}"`);
-                        break;
-                    }
-                }
-                
-                if (targetButton) {
-                    await targetButton.click();
-                    logger.info('已点击"Yes, Log In"按钮');
-                } else {
-                    // 如果没找到包含文本的按钮，尝试查找包含span的按钮
-                    logger.info('未找到包含文本的按钮，尝试查找包含span的按钮');
-                    const buttonsWithSpan = await page.$$('main button span');
-                    
-                    for (let i = 0; i < buttonsWithSpan.length; i++) {
-                        const spanText = await buttonsWithSpan[i].evaluate(el => el.textContent.trim());
-                        logger.info(`Span ${i+1} 文本: "${spanText}"`);
-                        
-                        if (spanText.includes('Yes, Log In')) {
-                            // 点击span的父元素（按钮）
-                            await buttonsWithSpan[i].evaluate(el => {
-                                const button = el.closest('button');
-                                if (button) button.click();
-                            });
-                            logger.info('已点击包含"Yes, Log In"文本span的按钮');
-                            break;
-                        }
-                    }
-                }
-            } catch (error) {
-                logger.error(`无法找到或点击"Yes, Log In"按钮: ${error.message}`);
-                throw new Error('登录失败：无法找到或点击"Yes, Log In"按钮');
-            }
 
             // 返回浏览器和页面对象，以便后续操作
             return { browser, page };
@@ -625,6 +589,105 @@ class Cursor {
         }
     }
 
+    async updateAuth(email = null, accessToken = null, refreshToken = null) {
+        logger.info('开始更新 Cursor 认证信息...');
+
+        const updates = [
+            ['cursorAuth/cachedSignUpType', 'Auth_0']
+        ];
+
+        if (email !== null) {
+            updates.push(['cursorAuth/cachedEmail', email]);
+        }
+        if (accessToken !== null) {
+            updates.push(['cursorAuth/accessToken', accessToken]);
+        }
+        if (refreshToken !== null) {
+            updates.push(['cursorAuth/refreshToken', refreshToken]);
+        }
+
+        if (updates.length === 1) {
+            logger.warn('没有提供任何要更新的值');
+            return false;
+        }
+
+        try {
+            const dbPath = await this.getDbPath();
+            
+            return new Promise((resolve, reject) => {
+                // 打开数据库连接
+                const db = new sqlite3.Database(dbPath, async (err) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    try {
+                        for (const [key, value] of updates) {
+                            // 检查键是否存在
+                            await new Promise((res, rej) => {
+                                db.get('SELECT COUNT(*) as count FROM itemTable WHERE key = ?', [key], async (err, row) => {
+                                    if (err) {
+                                        rej(err);
+                                        return;
+                                    }
+
+                                    try {
+                                        if (row.count === 0) {
+                                            // 插入新记录
+                                            await new Promise((resolve, reject) => {
+                                                db.run('INSERT INTO itemTable (key, value) VALUES (?, ?)', [key, value], (err) => {
+                                                    if (err) reject(err);
+                                                    else {
+                                                        logger.info(`插入新记录: ${key.split('/').pop()}`);
+                                                        resolve();
+                                                    }
+                                                });
+                                            });
+                                        } else {
+                                            // 更新现有记录
+                                            await new Promise((resolve, reject) => {
+                                                db.run('UPDATE itemTable SET value = ? WHERE key = ?', [value, key], function(err) {
+                                                    if (err) reject(err);
+                                                    else {
+                                                        if (this.changes > 0) {
+                                                            logger.info(`成功更新: ${key.split('/').pop()}`);
+                                                        } else {
+                                                            logger.warn(`未找到 ${key.split('/').pop()} 或值未变化`);
+                                                        }
+                                                        resolve();
+                                                    }
+                                                });
+                                            });
+                                        }
+                                        res();
+                                    } catch (error) {
+                                        rej(error);
+                                    }
+                                });
+                            });
+                        }
+
+                        db.close((err) => {
+                            if (err) {
+                                reject(err);
+                                return;
+                            }
+                            logger.info('认证信息更新完成');
+                            resolve(true);
+                        });
+                    } catch (error) {
+                        db.close(() => reject(error));
+                    }
+                });
+            });
+
+        } catch (error) {
+            logger.error('更新认证信息失败:', error);
+            return false;
+        }
+    }
+
     /**
      * 获取Cursor的storage.json文件路径
      * @returns {string} storage.json文件的完整路径
@@ -827,6 +890,7 @@ class Cursor {
             } else {
                 logger.info('配置目录不存在，将创建新配置...');
             }
+            
             
             // 步骤4: 启动Cursor生成配置文件
             logger.info('将启动Cursor生成配置文件...');

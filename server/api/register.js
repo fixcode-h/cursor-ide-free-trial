@@ -469,6 +469,9 @@ router.post('/login', async (req, res) => {
         }
         logger.info('成功获取 session token');
 
+        // 设置token
+        await flow.updateAuth(account.email, sessionToken, sessionToken)
+
         // 更新账号Cooie
         await accountDataHandler.updateRecord(
             account.email,
