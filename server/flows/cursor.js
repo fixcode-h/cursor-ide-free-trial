@@ -919,36 +919,55 @@ class Cursor {
         try {
             const platform = os.platform();
             
-            // 根据平台执行不同的禁用逻辑
-            switch (platform) {
-                case 'win32': {
-                    logger.info('正在禁用自动更新...');
-                    
-                    // 使用 consoleHelper 执行 PowerShell 脚本
-                    return await consoleHelper.executePowerShellScript(this.getScriptPath('cursor-update.ps1'), {
-                        noProfile: true,
-                        nonInteractive: true
-                    });
-                }
-                
-                case 'darwin': {
-                    // TODO: 实现 macOS 的禁用逻辑
-                    logger.warn('macOS 平台的自动更新禁用功能尚未实现');
-                    return false;
-                }
-                
-                case 'linux': {
-                    // TODO: 实现 Linux 的禁用逻辑
-                    logger.warn('Linux 平台的自动更新禁用功能尚未实现');
-                    return false;
-                }
-                
-                default: {
-                    logger.error(`不支持的操作系统平台: ${platform}`);
-                    return false;
-                }
+            if (platform !== 'win32') {
+                logger.warn(`${platform} 平台暂不支持禁用自动更新`);
+                return false;
             }
+
+            logger.info('正在禁用自动更新...');
             
+            // 获取updater路径
+            const updaterPath = path.join(process.env.LOCALAPPDATA, 'cursor-updater');
+            
+            // 删除现有目录或文件
+            try {
+                await fs.rm(updaterPath, { recursive: true, force: true });
+                logger.info('成功删除现有的 cursor-updater');
+            } catch (error) {
+                logger.warn('删除现有 cursor-updater 失败:', error);
+            }
+
+            // 创建阻止文件
+            try {
+                await fs.writeFile(updaterPath, '');
+                logger.info('成功创建阻止文件');
+
+                // 设置只读属性
+                await fs.chmod(updaterPath, 0o444);
+                logger.info('成功设置只读属性');
+
+                // 验证权限设置
+                const stats = await fs.stat(updaterPath);
+                const isReadOnly = (stats.mode & 0o222) === 0; // 检查写入权限是否被禁用
+
+                if (!isReadOnly) {
+                    throw new Error('文件权限设置验证失败');
+                }
+
+                logger.info('自动更新已成功禁用');
+                return true;
+            } catch (error) {
+                logger.error('设置更新阻止文件失败:', error);
+                
+                // 提供手动操作指南
+                logger.warn('请尝试手动操作：');
+                logger.warn('1. 以管理员身份打开命令提示符');
+                logger.warn(`2. 删除文件夹: rd /s /q "${updaterPath}"`);
+                logger.warn(`3. 创建空文件: type nul > "${updaterPath}"`);
+                logger.warn(`4. 设置只读: attrib +r "${updaterPath}"`);
+                
+                return false;
+            }
         } catch (error) {
             logger.error('禁用自动更新失败:', error);
             return false;
