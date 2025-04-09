@@ -79,6 +79,9 @@ const defaultConfig = {
         executablePath: '', // Chrome可执行文件的路径
         fingerprintRandom: false, // 是否随机指纹浏览器种子
         fingerprintSeed: '', // 固定指纹浏览器种子
+    },
+    cursor: {
+        executablePath: '', // Cursor可执行文件的路径，根据不同平台有不同默认路径
     }
 };
 

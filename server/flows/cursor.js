@@ -13,6 +13,7 @@ const axios = require('axios');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
+const config = require('../utils/config');
 
 class Cursor {
     constructor() {
@@ -44,23 +45,20 @@ class Cursor {
             }
             logger.info('开始 Cursor 登录流程...');
             
-            // 打开 cursor.sh 页面
+            // 创建新的页面
             page = await browser.newPage();
-            await page.goto(this.url);
+            logger.info('创建新页面');
+            
+            // 构造登录链接并访问
+            const challenge = crypto.randomBytes(16).toString('base64url');
+            const uuid = crypto.randomUUID();
+            const loginUrl = `${this.url}/loginDeepControl?challenge=${challenge}&uuid=${uuid}&mode=login`;
+            logger.info(`访问登录链接: ${loginUrl}`);
+            await page.goto(loginUrl);
 
             // 模拟初始浏览行为
             await this.humanBehavior.simulateHumanBehavior(page);
             logger.info('完成初始人类行为模拟');
-
-            // 等待并点击登录按钮
-            const loginButtonSelector = 'a[href^="/api/auth/login"]';
-            await page.waitForSelector(loginButtonSelector);
-            await page.click(loginButtonSelector);
-            await page.waitForNavigation();
-            logger.info('已点击登录按钮并等待页面跳转完成');
-
-            // 模拟浏览行为
-            await this.humanBehavior.simulateHumanBehavior(page);
 
             // 填写邮箱
             const emailSelector = 'input[type="email"][placeholder="Your email address"]';
@@ -104,14 +102,28 @@ class Cursor {
             });
             logger.info('登录流程执行完成');
 
-            // 验证是否成功跳转到设置页面
+            // 验证是否成功跳转到loginDeepControl页面
             const currentUrl = page.url();
-            if (!currentUrl.includes('/settings')) {
-                logger.error('页面未跳转到设置页面');
-                throw new Error('登录验证失败：未能进入设置页面');
+            if (!currentUrl.includes('loginDeepControl')) {
+                logger.error('页面未跳转到loginDeepControl页面');
+                throw new Error('登录验证失败：未能进入loginDeepControl页面');
             }
 
-            logger.info('登录验证成功：邮箱匹配确认');
+            logger.info('登录验证成功：已进入loginDeepControl页面');
+
+            // 模拟浏览行为
+            await this.humanBehavior.simulateHumanBehavior(page);
+
+            // 点击"Yes, Log In"按钮
+            const yesLoginButtonSelector = 'button:has-text("Yes, Log In")';
+            await page.waitForSelector(yesLoginButtonSelector);
+            await page.click(yesLoginButtonSelector);
+            logger.info('已点击"Yes, Log In"按钮');
+
+            // 等待页面跳转
+            await page.waitForNavigation().catch(() => {
+                logger.info('页面可能没有跳转，继续执行');
+            });
 
             // 返回浏览器和页面对象，以便后续操作
             return { browser, page };
@@ -670,44 +682,290 @@ class Cursor {
     }
 
     /**
+     * 获取Cursor的storage.json文件路径
+     * @returns {string} storage.json文件的完整路径
+     */
+    getStoragePath() {
+        const platform = os.platform();
+        
+        let storagePath;
+        if (platform === 'win32') {
+            const appdata = process.env.APPDATA;
+            if (!appdata) {
+                throw new Error('APPDATA 环境变量未设置');
+            }
+            storagePath = path.join(appdata, 'Cursor', 'User', 'globalStorage', 'storage.json');
+        } else if (platform === 'darwin') {
+            storagePath = path.resolve(os.homedir(), 'Library/Application Support/Cursor/User/globalStorage/storage.json');
+        } else if (platform === 'linux') {
+            storagePath = path.resolve(os.homedir(), '.config/Cursor/User/globalStorage/storage.json');
+        } else {
+            throw new Error(`不支持的操作系统: ${platform}`);
+        }
+
+        return storagePath;
+    }
+
+    /**
+     * 获取Cursor配置文件目录
+     * @returns {string} Cursor配置文件的根目录
+     */
+    getCursorConfigDir() {
+        const platform = os.platform();
+        
+        let configDir;
+        if (platform === 'win32') {
+            const appdata = process.env.APPDATA;
+            if (!appdata) {
+                throw new Error('APPDATA 环境变量未设置');
+            }
+            configDir = path.join(appdata, 'Cursor');
+        } else if (platform === 'darwin') {
+            configDir = path.resolve(os.homedir(), 'Library/Application Support/Cursor');
+        } else if (platform === 'linux') {
+            configDir = path.resolve(os.homedir(), '.config/Cursor');
+        } else {
+            throw new Error(`不支持的操作系统: ${platform}`);
+        }
+
+        return configDir;
+    }
+
+    /**
+     * 获取Cursor可执行文件路径
+     * @returns {string} Cursor可执行文件的完整路径
+     */
+    getCursorExecutablePath() {
+        const platform = os.platform();
+        const configuration = config.getConfig();
+        
+        // 如果配置文件中指定了路径，则使用配置的路径
+        if (configuration.cursor && configuration.cursor.executablePath) {
+            return configuration.cursor.executablePath;
+        }
+        
+        // 否则根据平台返回默认路径
+        if (platform === 'win32') {
+            return path.join(process.env.LOCALAPPDATA, 'Programs', 'cursor', 'Cursor.exe');
+        } else if (platform === 'darwin') {
+            return '/Applications/Cursor.app/Contents/MacOS/Cursor';
+        } else if (platform === 'linux') {
+            return '/usr/bin/cursor'; // 假设安装在标准位置
+        } else {
+            throw new Error(`不支持的操作系统: ${platform}`);
+        }
+    }
+
+    /**
+     * 终止Cursor进程
+     * @returns {Promise<boolean>} 终止成功返回true，否则返回false
+     */
+    async killCursorProcess() {
+        try {
+            const platform = os.platform();
+            logger.info('正在终止Cursor进程...');
+            
+            let killed = false;
+            if (platform === 'win32') {
+                try {
+                    execSync('taskkill /F /IM Cursor.exe', { stdio: 'ignore' });
+                    killed = true;
+                } catch (error) {
+                    logger.warn('通过taskkill终止Cursor进程失败:', error.message);
+                }
+            } else {
+                try {
+                    execSync('pkill -f Cursor', { stdio: 'ignore' });
+                    killed = true;
+                } catch (error) {
+                    logger.warn('通过pkill终止Cursor进程失败:', error.message);
+                }
+            }
+            
+            // 验证进程是否已终止
+            const retryCount = 5;
+            const retryDelay = 1000; // 1秒
+            
+            for (let i = 0; i < retryCount; i++) {
+                // 检查进程是否仍在运行
+                let isRunning = false;
+                
+                if (platform === 'win32') {
+                    try {
+                        const result = execSync('tasklist /FI "IMAGENAME eq Cursor.exe" /NH', { encoding: 'utf8' });
+                        isRunning = result.includes('Cursor.exe');
+                    } catch (error) {
+                        logger.warn('检查Windows进程状态失败:', error.message);
+                    }
+                } else {
+                    try {
+                        const result = execSync('pgrep -f Cursor', { encoding: 'utf8' });
+                        isRunning = result.trim().length > 0;
+                    } catch (error) {
+                        // pgrep返回非零状态码表示没有找到进程，这是我们想要的
+                        isRunning = false;
+                    }
+                }
+                
+                if (!isRunning) {
+                    logger.info('Cursor进程已成功终止');
+                    return true;
+                }
+                
+                logger.warn(`Cursor进程仍在运行，等待终止 (尝试 ${i+1}/${retryCount})...`);
+                await delay(retryDelay);
+            }
+            
+            logger.error('无法完全终止Cursor进程');
+            return killed;
+        } catch (error) {
+            logger.error('终止Cursor进程时出错:', error);
+            return false;
+        }
+    }
+
+    /**
+     * 生成新的随机ID
+     * @returns {Object} 包含新ID的对象
+     */
+    generateNewMachineIds() {
+        // 生成新的UUID (devDeviceId)
+        const devDeviceId = crypto.randomUUID();
+        
+        // 生成新的machineId (64个字符的十六进制)
+        const machineId = crypto.randomBytes(32).toString('hex');
+        
+        // 生成新的macMachineId (64个字符的十六进制，与machineId格式相同)
+        const macMachineId = crypto.randomBytes(32).toString('hex');
+        
+        // 生成新的sqmId，格式为 {UUID}，且为大写
+        const sqmId = `{${crypto.randomUUID().toUpperCase()}}`;
+        
+        return {
+            'telemetry.machineId': machineId,
+            'telemetry.macMachineId': macMachineId,
+            'telemetry.devDeviceId': devDeviceId,
+            'telemetry.sqmId': sqmId
+        };
+    }
+
+    /**
      * 重置机器码
-     * 根据不同平台执行不同的重置逻辑
+     * 不依赖外部脚本，直接在JS中实现
      * @returns {Promise<boolean>} 重置成功返回 true，失败返回 false
      */
     async resetMachineCodes() {
         try {
-            const platform = os.platform();
+            logger.info('开始重置Cursor机器码...');
             
-            // 根据平台执行不同的重置逻辑
-            switch (platform) {
-                case 'win32': {
-                    logger.info('正在重置机器码...');
-                    
-                    // 使用 consoleHelper 执行 PowerShell 脚本
-                    return await consoleHelper.executePowerShellScript(this.getScriptPath('cursor.ps1'), {
-                        noProfile: true,
-                        nonInteractive: true
-                    });
-                }
-                
-                case 'darwin': {
-                    // TODO: 实现 macOS 的重置逻辑
-                    logger.warn('macOS 平台的重置机器码功能尚未实现');
-                    return false;
-                }
-                
-                case 'linux': {
-                    // TODO: 实现 Linux 的重置逻辑
-                    logger.warn('Linux 平台的重置机器码功能尚未实现');
-                    return false;
-                }
-                
-                default: {
-                    logger.error(`不支持的操作系统平台: ${platform}`);
-                    return false;
-                }
+            // 步骤1: 终止Cursor进程
+            const processKilled = await this.killCursorProcess();
+            if (!processKilled) {
+                logger.warn('Cursor进程终止不完全，继续尝试重置...');
             }
             
+            // 步骤2: 获取storage.json文件路径和配置目录
+            const storagePath = this.getStoragePath();
+            const configDir = this.getCursorConfigDir();
+            
+            // 步骤3: 检查配置目录是否存在，存在则清理
+            const configDirExists = await fs.access(configDir).then(() => true).catch(() => false);
+            
+            if (configDirExists) {
+                logger.info('配置目录已存在，将清理整个配置目录...');
+                try {
+                    // 删除整个配置目录
+                    await fs.rm(configDir, { recursive: true, force: true });
+                    logger.info('已清理整个配置目录');
+                } catch (error) {
+                    logger.warn('清理配置目录时出错:', error.message);
+                }
+            } else {
+                logger.info('配置目录不存在，将创建新配置...');
+            }
+            
+            // 步骤4: 启动Cursor生成配置文件
+            logger.info('将启动Cursor生成配置文件...');
+            
+            // 获取Cursor可执行文件路径
+            const cursorExecutable = this.getCursorExecutablePath();
+            
+            // 检查可执行文件是否存在
+            try {
+                await fs.access(cursorExecutable);
+            } catch (error) {
+                logger.error(`Cursor可执行文件不存在: ${cursorExecutable}`);
+                return false;
+            }
+            
+            // 启动Cursor进程
+            logger.info(`正在启动Cursor: ${cursorExecutable}`);
+            const cursorProcess = spawn(cursorExecutable, [], {
+                detached: true,
+                stdio: 'ignore'
+            });
+            
+            // 分离进程，让它在后台运行
+            cursorProcess.unref();
+            
+            // 等待配置文件生成，最多等待30秒
+            logger.info('等待配置文件生成...');
+            const maxWaitTime = 30000; // 30秒
+            const checkInterval = 1000; // 每秒检查一次
+            const startTime = Date.now();
+            
+            let configCreated = false;
+            while (Date.now() - startTime < maxWaitTime) {
+                // 检查配置文件是否存在
+                configCreated = await fs.access(storagePath).then(() => true).catch(() => false);
+                if (configCreated) {
+                    logger.info('配置文件已生成');
+                    break;
+                }
+                logger.info(`等待配置文件生成... (${Math.floor((Date.now() - startTime) / 1000)}秒)`);
+                await delay(checkInterval);
+            }
+            
+            // 终止新启动的Cursor进程
+            await this.killCursorProcess();
+            
+            // 检查配置文件是否已生成
+            if (!configCreated) {
+                logger.error('无法创建配置文件，启动Cursor后仍未生成storage.json');
+                return false;
+            }
+            
+            // 步骤5: 读取配置文件
+            logger.info('正在读取配置文件...');
+            const configContent = await fs.readFile(storagePath, 'utf8');
+            let config;
+            
+            try {
+                config = JSON.parse(configContent);
+            } catch (error) {
+                logger.error('解析配置文件失败:', error);
+                return false;
+            }
+            
+            // 步骤6: 生成新的机器ID
+            logger.info('正在生成新的机器ID...');
+            const newIds = this.generateNewMachineIds();
+            
+            // 步骤7: 更新配置
+            logger.info('正在更新配置...');
+            Object.assign(config, newIds);
+            
+            // 步骤8: 写入新配置
+            logger.info('正在写入新配置...');
+            await fs.writeFile(storagePath, JSON.stringify(config, null, 2), 'utf8');
+            
+            logger.info('机器码重置成功！');
+            logger.info('新的机器码:');
+            for (const [key, value] of Object.entries(newIds)) {
+                logger.info(`${key}: ${value}`);
+            }
+            
+            return true;
         } catch (error) {
             logger.error('重置机器码失败:', error);
             return false;

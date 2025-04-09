@@ -685,6 +685,22 @@
                                             </div>
                                         </div>
 
+                                        <!-- Cursor设置 -->
+                                        <div class="card mb-3">
+                                            <div class="card-header">Cursor设置</div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <label for="cursorExecutablePath" class="form-label">Cursor可执行文件路径</label>
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control" id="cursorExecutablePath" name="cursor.executablePath" placeholder="请选择或输入Cursor可执行文件路径">
+                                                        <button class="btn btn-outline-secondary" type="button" id="selectCursorPathBtn">选择</button>
+                                                        <button class="btn btn-outline-secondary" type="button" id="resetCursorPathBtn">恢复默认</button>
+                                                    </div>
+                                                    <div class="form-text text-muted">Cursor IDE的可执行文件路径，留空则使用系统默认路径</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <div class="row">
                                             <div class="col-12">
                                                 <button type="submit" class="btn btn-primary w-100">保存设置</button>
