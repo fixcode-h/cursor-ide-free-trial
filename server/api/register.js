@@ -448,6 +448,11 @@ router.post('/login', async (req, res) => {
         const Flow = config.registration.type === 'copilot' ? Copilot : Cursor;
         const flow = new Flow();
 
+        // 重置机器码
+        logger.info('正在重置机器码...');
+        await flow.resetMachineCodes();
+        logger.info('机器码重置完成');
+
         // 执行登录流程
         logger.info('正在执行登录流程...');
         const account = { email, password };
@@ -464,6 +469,9 @@ router.post('/login', async (req, res) => {
         }
         logger.info('成功获取 session token');
 
+        // 设置token
+        await flow.updateAuth(account.email, sessionToken, sessionToken)
+
         // 更新账号Cooie
         await accountDataHandler.updateRecord(
             account.email,
@@ -473,23 +481,6 @@ router.post('/login', async (req, res) => {
             }
         );
         logger.info('账号Cookie已更新');
-
-        // 更新认证信息
-        const success = await flow.updateAuth(
-            email,
-            sessionToken,
-            sessionToken
-        );
-
-        if (!success) {
-            throw new Error('更新认证信息失败');
-        }
-        logger.info('认证信息更新成功');
-
-        // 重置机器码
-        logger.info('正在重置机器码...');
-        await flow.resetMachineCodes();
-        logger.info('机器码重置完成');
 
         // 清理资源
         if (loginPage) {

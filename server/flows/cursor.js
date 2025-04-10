@@ -13,6 +13,7 @@ const axios = require('axios');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
+const config = require('../utils/config');
 
 class Cursor {
     constructor() {
@@ -43,9 +44,11 @@ class Cursor {
                 throw new Error('登录账号信息不完整');
             }
             logger.info('开始 Cursor 登录流程...');
-            
-            // 打开 cursor.sh 页面
+        
+            // 创建新的页面
             page = await browser.newPage();
+            logger.info('创建新页面');
+            
             await page.goto(this.url);
 
             // 模拟初始浏览行为
@@ -62,8 +65,18 @@ class Cursor {
             // 模拟浏览行为
             await this.humanBehavior.simulateHumanBehavior(page);
 
+            // 等待邮箱输入框出现，使用更精确的选择器
+            const emailSelector = 'input[type="email"][name="email"]';
+            await page.waitForSelector(emailSelector, {
+                visible: true,
+                timeout: 10000
+            });
+
+            // 模拟初始浏览行为
+            await this.humanBehavior.simulateHumanBehavior(page);
+            logger.info('完成初始人类行为模拟');
+
             // 填写邮箱
-            const emailSelector = 'input[type="email"][placeholder="Your email address"]';
             await this.humanBehavior.simulateHumanTyping(page, emailSelector, account.email);
             logger.info('已填写邮箱');
 
@@ -104,14 +117,17 @@ class Cursor {
             });
             logger.info('登录流程执行完成');
 
-            // 验证是否成功跳转到设置页面
+            // 验证是否成功跳转到loginDeepControl页面
             const currentUrl = page.url();
-            if (!currentUrl.includes('/settings')) {
-                logger.error('页面未跳转到设置页面');
-                throw new Error('登录验证失败：未能进入设置页面');
+            if (!currentUrl.includes('settings')) {
+                logger.error('页面未跳转到settings页面');
+                throw new Error('登录验证失败：未能进入settings页面');
             }
 
-            logger.info('登录验证成功：邮箱匹配确认');
+            logger.info('登录验证成功：已进入settings页面');
+
+            // 模拟浏览行为
+            await this.humanBehavior.simulateHumanBehavior(page);
 
             // 返回浏览器和页面对象，以便后续操作
             return { browser, page };
@@ -487,11 +503,95 @@ class Cursor {
         return dbPath;
     }
 
+    /**
+     * 从 SQLite 数据库中获取 Cursor 认证信息
+     * @returns {Promise<{email: string|null, accessToken: string|null, refreshToken: string|null}>} 包含认证信息的对象
+     */
+    async getAuth() {
+        logger.info('开始获取 Cursor 认证信息...');
+
+        try {
+            const dbPath = await this.getDbPath();
+            
+            return new Promise((resolve, reject) => {
+                // 打开数据库连接
+                const db = new sqlite3.Database(dbPath, (err) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    // 准备查询的键
+                    const keys = [
+                        'cursorAuth/cachedEmail',
+                        'cursorAuth/accessToken',
+                        'cursorAuth/refreshToken'
+                    ];
+
+                    // 存储结果的对象
+                    const result = {
+                        email: null,
+                        accessToken: null,
+                        refreshToken: null
+                    };
+
+                    // 使用 Promise.all 并行查询所有键
+                    Promise.all(keys.map(key => {
+                        return new Promise((resolve, reject) => {
+                            db.get('SELECT value FROM itemTable WHERE key = ?', [key], (err, row) => {
+                                if (err) {
+                                    reject(err);
+                                    return;
+                                }
+
+                                // 根据键名设置对应的值
+                                switch (key) {
+                                    case 'cursorAuth/cachedEmail':
+                                        result.email = row ? row.value : null;
+                                        break;
+                                    case 'cursorAuth/accessToken':
+                                        result.accessToken = row ? row.value : null;
+                                        break;
+                                    case 'cursorAuth/refreshToken':
+                                        result.refreshToken = row ? row.value : null;
+                                        break;
+                                }
+                                resolve();
+                            });
+                        });
+                    }))
+                    .then(() => {
+                        db.close((err) => {
+                            if (err) {
+                                reject(err);
+                                return;
+                            }
+                            logger.info('成功获取认证信息');
+                            resolve(result);
+                        });
+                    })
+                    .catch(error => {
+                        db.close(() => reject(error));
+                    });
+                });
+            });
+
+        } catch (error) {
+            logger.error('获取认证信息失败:', error);
+            return {
+                email: null,
+                accessToken: null,
+                refreshToken: null
+            };
+        }
+    }
+
     async updateAuth(email = null, accessToken = null, refreshToken = null) {
         logger.info('开始更新 Cursor 认证信息...');
 
         const updates = [
-            ['cursorAuth/cachedSignUpType', 'Auth_0']
+            ['cursorAuth/cachedSignUpType', 'Auth_0'],
+            ['cursorAuth/stripeMembershipType', 'free_trial'],
         ];
 
         if (email !== null) {
@@ -587,127 +687,223 @@ class Cursor {
     }
 
     /**
-     * 从 SQLite 数据库中获取 Cursor 认证信息
-     * @returns {Promise<{email: string|null, accessToken: string|null, refreshToken: string|null}>} 包含认证信息的对象
+     * 获取Cursor的storage.json文件路径
+     * @returns {string} storage.json文件的完整路径
      */
-    async getAuth() {
-        logger.info('开始获取 Cursor 认证信息...');
+    getStoragePath() {
+        const platform = os.platform();
+        
+        let storagePath;
+        if (platform === 'win32') {
+            const appdata = process.env.APPDATA;
+            if (!appdata) {
+                throw new Error('APPDATA 环境变量未设置');
+            }
+            storagePath = path.join(appdata, 'Cursor', 'User', 'globalStorage', 'storage.json');
+        } else if (platform === 'darwin') {
+            storagePath = path.resolve(os.homedir(), 'Library/Application Support/Cursor/User/globalStorage/storage.json');
+        } else if (platform === 'linux') {
+            storagePath = path.resolve(os.homedir(), '.config/Cursor/User/globalStorage/storage.json');
+        } else {
+            throw new Error(`不支持的操作系统: ${platform}`);
+        }
 
-        try {
-            const dbPath = await this.getDbPath();
-            
-            return new Promise((resolve, reject) => {
-                // 打开数据库连接
-                const db = new sqlite3.Database(dbPath, (err) => {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
+        return storagePath;
+    }
 
-                    // 准备查询的键
-                    const keys = [
-                        'cursorAuth/cachedEmail',
-                        'cursorAuth/accessToken',
-                        'cursorAuth/refreshToken'
-                    ];
+    /**
+     * 获取Cursor配置文件目录
+     * @returns {string} Cursor配置文件的根目录
+     */
+    getCursorConfigDir() {
+        const platform = os.platform();
+        
+        let configDir;
+        if (platform === 'win32') {
+            const appdata = process.env.APPDATA;
+            if (!appdata) {
+                throw new Error('APPDATA 环境变量未设置');
+            }
+            configDir = path.join(appdata, 'Cursor');
+        } else if (platform === 'darwin') {
+            configDir = path.resolve(os.homedir(), 'Library/Application Support/Cursor');
+        } else if (platform === 'linux') {
+            configDir = path.resolve(os.homedir(), '.config/Cursor');
+        } else {
+            throw new Error(`不支持的操作系统: ${platform}`);
+        }
 
-                    // 存储结果的对象
-                    const result = {
-                        email: null,
-                        accessToken: null,
-                        refreshToken: null
-                    };
+        return configDir;
+    }
 
-                    // 使用 Promise.all 并行查询所有键
-                    Promise.all(keys.map(key => {
-                        return new Promise((resolve, reject) => {
-                            db.get('SELECT value FROM itemTable WHERE key = ?', [key], (err, row) => {
-                                if (err) {
-                                    reject(err);
-                                    return;
-                                }
-
-                                // 根据键名设置对应的值
-                                switch (key) {
-                                    case 'cursorAuth/cachedEmail':
-                                        result.email = row ? row.value : null;
-                                        break;
-                                    case 'cursorAuth/accessToken':
-                                        result.accessToken = row ? row.value : null;
-                                        break;
-                                    case 'cursorAuth/refreshToken':
-                                        result.refreshToken = row ? row.value : null;
-                                        break;
-                                }
-                                resolve();
-                            });
-                        });
-                    }))
-                    .then(() => {
-                        db.close((err) => {
-                            if (err) {
-                                reject(err);
-                                return;
-                            }
-                            logger.info('成功获取认证信息');
-                            resolve(result);
-                        });
-                    })
-                    .catch(error => {
-                        db.close(() => reject(error));
-                    });
-                });
-            });
-
-        } catch (error) {
-            logger.error('获取认证信息失败:', error);
-            return {
-                email: null,
-                accessToken: null,
-                refreshToken: null
-            };
+    /**
+     * 获取Cursor可执行文件路径
+     * @returns {string} Cursor可执行文件的完整路径
+     */
+    getCursorExecutablePath() {
+        const platform = os.platform();
+        const configuration = config.getConfig();
+        
+        // 如果配置文件中指定了路径，则使用配置的路径
+        if (configuration.cursor && configuration.cursor.executablePath) {
+            return configuration.cursor.executablePath;
+        }
+        
+        // 否则根据平台返回默认路径
+        if (platform === 'win32') {
+            return path.join(process.env.LOCALAPPDATA, 'Programs', 'cursor', 'Cursor.exe');
+        } else if (platform === 'darwin') {
+            return '/Applications/Cursor.app/Contents/MacOS/Cursor';
+        } else if (platform === 'linux') {
+            return '/usr/bin/cursor'; // 假设安装在标准位置
+        } else {
+            throw new Error(`不支持的操作系统: ${platform}`);
         }
     }
 
     /**
+     * 终止Cursor进程
+     * @returns {Promise<boolean>} 终止成功返回true，否则返回false
+     */
+    async killCursorProcess() {
+        try {
+            const platform = os.platform();
+            logger.info('正在终止Cursor进程...');
+            
+            let killed = false;
+            if (platform === 'win32') {
+                try {
+                    execSync('taskkill /F /IM Cursor.exe', { stdio: 'ignore' });
+                    killed = true;
+                } catch (error) {
+                    logger.warn('通过taskkill终止Cursor进程失败:', error.message);
+                }
+            } else {
+                try {
+                    execSync('pkill -f Cursor', { stdio: 'ignore' });
+                    killed = true;
+                } catch (error) {
+                    logger.warn('通过pkill终止Cursor进程失败:', error.message);
+                }
+            }
+            
+            // 验证进程是否已终止
+            const retryCount = 5;
+            const retryDelay = 1000; // 1秒
+            
+            for (let i = 0; i < retryCount; i++) {
+                // 检查进程是否仍在运行
+                let isRunning = false;
+                
+                if (platform === 'win32') {
+                    try {
+                        const result = execSync('tasklist /FI "IMAGENAME eq Cursor.exe" /NH', { encoding: 'utf8' });
+                        isRunning = result.includes('Cursor.exe');
+                    } catch (error) {
+                        logger.warn('检查Windows进程状态失败:', error.message);
+                    }
+                } else {
+                    try {
+                        const result = execSync('pgrep -f Cursor', { encoding: 'utf8' });
+                        isRunning = result.trim().length > 0;
+                    } catch (error) {
+                        // pgrep返回非零状态码表示没有找到进程，这是我们想要的
+                        isRunning = false;
+                    }
+                }
+                
+                if (!isRunning) {
+                    logger.info('Cursor进程已成功终止');
+                    return true;
+                }
+                
+                logger.warn(`Cursor进程仍在运行，等待终止 (尝试 ${i+1}/${retryCount})...`);
+                await delay(retryDelay);
+            }
+            
+            logger.error('无法完全终止Cursor进程');
+            return killed;
+        } catch (error) {
+            logger.error('终止Cursor进程时出错:', error);
+            return false;
+        }
+    }
+
+    /**
+     * 生成新的随机ID
+     * @returns {Object} 包含新ID的对象
+     */
+    generateNewMachineIds() {
+        // 生成新的UUID (devDeviceId)
+        const devDeviceId = crypto.randomUUID();
+        
+        // 生成新的machineId (64个字符的十六进制)
+        const machineId = crypto.randomBytes(32).toString('hex');
+        
+        // 生成新的macMachineId (64个字符的十六进制，与machineId格式相同)
+        const macMachineId = crypto.randomBytes(32).toString('hex');
+        
+        // 生成新的sqmId，格式为 {UUID}，且为大写
+        const sqmId = `{${crypto.randomUUID().toUpperCase()}}`;
+        
+        return {
+            'telemetry.machineId': machineId,
+            'telemetry.macMachineId': macMachineId,
+            'telemetry.devDeviceId': devDeviceId,
+            'telemetry.sqmId': sqmId
+        };
+    }
+
+    /**
      * 重置机器码
-     * 根据不同平台执行不同的重置逻辑
+     * 不依赖外部脚本，直接在JS中实现
      * @returns {Promise<boolean>} 重置成功返回 true，失败返回 false
      */
     async resetMachineCodes() {
         try {
-            const platform = os.platform();
+            logger.info('开始重置Cursor机器码...');
             
-            // 根据平台执行不同的重置逻辑
-            switch (platform) {
-                case 'win32': {
-                    logger.info('正在重置机器码...');
-                    
-                    // 使用 consoleHelper 执行 PowerShell 脚本
-                    return await consoleHelper.executePowerShellScript(this.getScriptPath('cursor.ps1'), {
-                        noProfile: true,
-                        nonInteractive: true
-                    });
-                }
-                
-                case 'darwin': {
-                    // TODO: 实现 macOS 的重置逻辑
-                    logger.warn('macOS 平台的重置机器码功能尚未实现');
-                    return false;
-                }
-                
-                case 'linux': {
-                    // TODO: 实现 Linux 的重置逻辑
-                    logger.warn('Linux 平台的重置机器码功能尚未实现');
-                    return false;
-                }
-                
-                default: {
-                    logger.error(`不支持的操作系统平台: ${platform}`);
-                    return false;
-                }
+            // 步骤1: 终止Cursor进程
+            const processKilled = await this.killCursorProcess();
+            if (!processKilled) {
+                logger.warn('Cursor进程终止不完全，继续尝试重置...');
             }
             
+            // 步骤2: 获取storage.json文件路径和配置目录
+            const storagePath = this.getStoragePath();
+            const configDir = this.getCursorConfigDir();
+            
+            // 步骤3: 读取配置文件
+            logger.info('正在读取配置文件...');
+            const configContent = await fs.readFile(storagePath, 'utf8');
+            let config;
+            
+            try {
+                config = JSON.parse(configContent);
+            } catch (error) {
+                logger.error('解析配置文件失败:', error);
+                return false;
+            }
+            
+            // 步骤4: 生成新的机器ID
+            logger.info('正在生成新的机器ID...');
+            const newIds = this.generateNewMachineIds();
+            
+            // 步骤5: 更新配置
+            logger.info('正在更新配置...');
+            Object.assign(config, newIds);
+            
+            // 步骤6: 写入新配置
+            logger.info('正在写入新配置...');
+            await fs.writeFile(storagePath, JSON.stringify(config, null, 2), 'utf8');
+            
+            logger.info('机器码重置成功！');
+            logger.info('新的机器码:');
+            for (const [key, value] of Object.entries(newIds)) {
+                logger.info(`${key}: ${value}`);
+            }
+            
+            return true;
         } catch (error) {
             logger.error('重置机器码失败:', error);
             return false;
@@ -723,36 +919,55 @@ class Cursor {
         try {
             const platform = os.platform();
             
-            // 根据平台执行不同的禁用逻辑
-            switch (platform) {
-                case 'win32': {
-                    logger.info('正在禁用自动更新...');
-                    
-                    // 使用 consoleHelper 执行 PowerShell 脚本
-                    return await consoleHelper.executePowerShellScript(this.getScriptPath('cursor-update.ps1'), {
-                        noProfile: true,
-                        nonInteractive: true
-                    });
-                }
-                
-                case 'darwin': {
-                    // TODO: 实现 macOS 的禁用逻辑
-                    logger.warn('macOS 平台的自动更新禁用功能尚未实现');
-                    return false;
-                }
-                
-                case 'linux': {
-                    // TODO: 实现 Linux 的禁用逻辑
-                    logger.warn('Linux 平台的自动更新禁用功能尚未实现');
-                    return false;
-                }
-                
-                default: {
-                    logger.error(`不支持的操作系统平台: ${platform}`);
-                    return false;
-                }
+            if (platform !== 'win32') {
+                logger.warn(`${platform} 平台暂不支持禁用自动更新`);
+                return false;
             }
+
+            logger.info('正在禁用自动更新...');
             
+            // 获取updater路径
+            const updaterPath = path.join(process.env.LOCALAPPDATA, 'cursor-updater');
+            
+            // 删除现有目录或文件
+            try {
+                await fs.rm(updaterPath, { recursive: true, force: true });
+                logger.info('成功删除现有的 cursor-updater');
+            } catch (error) {
+                logger.warn('删除现有 cursor-updater 失败:', error);
+            }
+
+            // 创建阻止文件
+            try {
+                await fs.writeFile(updaterPath, '');
+                logger.info('成功创建阻止文件');
+
+                // 设置只读属性
+                await fs.chmod(updaterPath, 0o444);
+                logger.info('成功设置只读属性');
+
+                // 验证权限设置
+                const stats = await fs.stat(updaterPath);
+                const isReadOnly = (stats.mode & 0o222) === 0; // 检查写入权限是否被禁用
+
+                if (!isReadOnly) {
+                    throw new Error('文件权限设置验证失败');
+                }
+
+                logger.info('自动更新已成功禁用');
+                return true;
+            } catch (error) {
+                logger.error('设置更新阻止文件失败:', error);
+                
+                // 提供手动操作指南
+                logger.warn('请尝试手动操作：');
+                logger.warn('1. 以管理员身份打开命令提示符');
+                logger.warn(`2. 删除文件夹: rd /s /q "${updaterPath}"`);
+                logger.warn(`3. 创建空文件: type nul > "${updaterPath}"`);
+                logger.warn(`4. 设置只读: attrib +r "${updaterPath}"`);
+                
+                return false;
+            }
         } catch (error) {
             logger.error('禁用自动更新失败:', error);
             return false;

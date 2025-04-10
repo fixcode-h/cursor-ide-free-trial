@@ -135,6 +135,41 @@ document.addEventListener('DOMContentLoaded', function() {
         appendToConsole('info', 'Chrome可执行文件路径已恢复默认值');
     });
 
+    // 处理Cursor可执行文件路径选择
+    document.getElementById('selectCursorPathBtn').addEventListener('click', async () => {
+        try {
+            // 使用 IPC 通信选择文件
+            const result = await window.electron.showOpenDialog({
+                title: '选择Cursor可执行文件',
+                filters: [
+                    { name: 'Cursor Executable', extensions: ['exe'] }
+                ]
+            });
+
+            if (!result.canceled && result.filePaths.length > 0) {
+                const filePath = result.filePaths[0];
+                document.getElementById('cursorExecutablePath').value = filePath;
+                appendToConsole('success', '已选择Cursor可执行文件: ' + filePath);
+            }
+        } catch (error) {
+            console.error('选择Cursor可执行文件路径失败:', error);
+            appendToConsole('error', '选择Cursor可执行文件路径失败: ' + error.message);
+        }
+    });
+
+    // 允许直接编辑Cursor路径输入框
+    document.getElementById('cursorExecutablePath').addEventListener('input', (event) => {
+        // 可以在这里添加路径验证逻辑
+        const path = event.target.value;
+    });
+
+    // 处理Cursor可执行文件路径重置
+    document.getElementById('resetCursorPathBtn').addEventListener('click', () => {
+        const input = document.getElementById('cursorExecutablePath');
+        input.value = '';
+        appendToConsole('info', 'Cursor可执行文件路径已恢复默认值');
+    });
+
     // 生成随机指纹种子
     function generateRandomSeed() {
         // 生成1到4200000000之间的随机整数

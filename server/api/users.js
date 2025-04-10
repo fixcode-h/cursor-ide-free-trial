@@ -8,11 +8,17 @@ const AccountDataHandler = require('../utils/account-data-handler');
 // 获取用户信息
 router.get('/info', async (req, res) => {
     try {
+        let mailData = {};
         const mailApi = new PublicMailApi();
-        const mailResult = await mailApi.getUserInfo();
-        
-        if (!mailResult.success) {
-            throw new Error(mailResult.message || '获取邮箱信息失败');
+        try {
+            const mailResult = await mailApi.getUserInfo();
+            if (mailResult.success) {
+                mailData = mailResult.data;
+            } else {
+                logger.warn('获取邮箱信息失败:', mailResult.message);
+            }
+        } catch (error) {
+            logger.warn('获取邮箱信息失败:', error);
         }
 
         // 获取 Cursor 认证信息
@@ -35,16 +41,21 @@ router.get('/info', async (req, res) => {
             }
         }
 
-        // 添加 Cursor 信息到现有结果中
-        mailResult.data.cursor = {
-            email: cursorAuth.email,
-            accessToken: cursorAuth.accessToken,
-            refreshToken: cursorAuth.refreshToken,
-            maxRequestUsage: usage?.maxRequestUsage || 0,
-            numRequests: usage?.numRequests || 0,
+        const responseData = {
+            success: true,
+            data: {
+                ...mailData,
+                cursor: {
+                    email: cursorAuth.email,
+                    accessToken: cursorAuth.accessToken,
+                    refreshToken: cursorAuth.refreshToken,
+                    maxRequestUsage: usage?.maxRequestUsage || 0,
+                    numRequests: usage?.numRequests || 0,
+                }
+            }
         };
 
-        res.json(mailResult);
+        res.json(responseData);
     } catch (error) {
         logger.error('获取用户信息失败:', error);
         res.status(500).json({ 
@@ -54,4 +65,4 @@ router.get('/info', async (req, res) => {
     }
 });
 
-module.exports = router; 
+module.exports = router;

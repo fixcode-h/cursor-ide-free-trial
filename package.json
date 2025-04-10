@@ -31,21 +31,6 @@
         ]
       },
       {
-        "from": "scripts",
-        "to": "scripts",
-        "filter": [
-          "cursor.ps1",
-          "cursor-update.ps1"
-        ]
-      },
-      {
-        "from": "keys",
-        "to": "keys",
-        "filter": [
-          "public.pem"
-        ]
-      },
-      {
         "from": "dist_public",
         "to": "public",
         "filter": [
