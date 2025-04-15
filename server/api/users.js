@@ -15,10 +15,10 @@ router.get('/info', async (req, res) => {
             if (mailResult.success) {
                 mailData = mailResult.data;
             } else {
-                logger.warn('获取邮箱信息失败:', mailResult.message);
+                logger.warn('获取邮箱信息失败:');
             }
         } catch (error) {
-            logger.warn('获取邮箱信息失败:', error);
+            logger.warn('获取邮箱信息失败:');
         }
 
         // 获取 Cursor 认证信息
