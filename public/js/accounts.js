@@ -77,6 +77,9 @@ function displayAccounts(accounts) {
         const lastName = account.lastName || account.lastname || '';
         const username = account.username || '';
 
+        // 根据状态决定是否显示注册按钮
+        const showRegisterButton = status !== 'VERIFIED';
+
         const row = document.createElement('tr');
         row.innerHTML = `
             <td class="text-light">${email}</td>
@@ -99,6 +102,7 @@ function displayAccounts(accounts) {
                         <li><a class="dropdown-item edit-account-btn" href="#" data-account='${JSON.stringify(account)}'>
                             <i class="bi bi-pencil"></i> 编辑账号
                         </a></li>
+                        ${showRegisterButton ? `
                         <li><a class="dropdown-item account-register-btn" href="#" 
                             data-email="${email}" 
                             data-password="${password}"
@@ -106,7 +110,7 @@ function displayAccounts(accounts) {
                             data-lastName="${lastName}"
                             data-username="${username}">
                             <i class="bi bi-person-plus"></i> 账号注册
-                        </a></li>
+                        </a></li>` : ''}
                         <li><a class="dropdown-item account-login-btn" href="#" data-email="${email}" data-password="${password}">
                             <i class="bi bi-box-arrow-in-right"></i> 账号登录
                         </a></li>
