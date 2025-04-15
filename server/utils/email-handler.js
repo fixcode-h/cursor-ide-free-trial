@@ -177,20 +177,17 @@ class EmailHandler {
 
         const startTime = Date.now();
         logger.info('开始等待验证码邮件...');
+        logger.info(`直接在邮箱 ${this.config.email.user} 中查找来自 ${flow.getVerificationEmailSender()} 的验证码邮件`);
 
         while (Date.now() - startTime < timeout) {
             try {
                 // 使用重试机制执行IMAP操作
-                console.log('+++++++++++++++++++++++++++++');
-                console.log(flow.getVerificationEmailSender());
-                console.log(account.email);
-                console.log(account);
                 const messages = await this.executeWithRetryImap(async () => {
                     await this.imapClient.mailboxOpen('INBOX');
+                    // 查询最近的未读邮件，不使用Cloudflare转发，直接查找验证码邮件
                     return await this.imapClient.search({
                         unseen: true,
-                        from: flow.getVerificationEmailSender(),
-                        to: account.email
+                        from: flow.getVerificationEmailSender()
                     }, {
                         sort: ['-date']
                     });

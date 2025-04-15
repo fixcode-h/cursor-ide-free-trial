@@ -93,11 +93,6 @@ router.post('/complete', async (req, res) => {
         logger.info('开始生成新的账号信息...');
         const account = await accountGenerator.generateAccount();
         
-        // 创建 Cloudflare 邮件管理器实例并注册邮件账号
-        logger.info('创建 Cloudflare 邮件管理器实例...');
-        cloudflareManager = new CloudflareEmailManager(config);
-        await cloudflareManager.registerEmailAccount(account);
-        
         // 添加新记录
         const newRecord = {
             ...account,
@@ -106,8 +101,22 @@ router.post('/complete', async (req, res) => {
             updatedAt: new Date().toISOString()
         };
         
-        await accountDataHandler.appendRecord(newRecord);
-        logger.info('账号信息已保存到数据库');
+        try {
+            // 检查邮箱是否已存在
+            const existingRecords = await accountDataHandler.readRecords();
+            const existingRecord = existingRecords.find(r => r.email === account.email);
+            
+            if (existingRecord) {
+                logger.info('邮箱已存在于数据库中，更新现有记录');
+                await accountDataHandler.updateRecord(account.email, newRecord);
+            } else {
+                await accountDataHandler.appendRecord(newRecord);
+            }
+            logger.info('账号信息已保存到数据库');
+        } catch (error) {
+            logger.error('保存账号信息失败，但继续执行:', error);
+            // 即使数据库操作失败，仍继续执行流程
+        }
 
         // 执行注册流程
         logger.info(`开始执行 ${config.registration.type} 注册流程...`);
@@ -142,6 +151,7 @@ router.post('/complete', async (req, res) => {
         }
 
         // 等待接收验证码邮件
+        logger.info(`不使用Cloudflare转发，将使用IMAP邮箱 ${config.email.user} 直接接收验证码`);
         const verificationCode = await getVerificationCode(account, config, {
             browser,
             tempMailPage,
@@ -152,15 +162,20 @@ router.post('/complete', async (req, res) => {
         });
 
         // 更新记录
-        await accountDataHandler.updateRecord(
-            account.email,
-            { 
-                status: AccountDataHandler.AccountStatus.CODE_RECEIVED,
-                verificationCode,
-                updatedAt: new Date().toISOString()
-            }
-        );
-        logger.info('验证码已更新到数据库');
+        try {
+            await accountDataHandler.updateRecord(
+                account.email,
+                { 
+                    status: AccountDataHandler.AccountStatus.CODE_RECEIVED,
+                    verificationCode,
+                    updatedAt: new Date().toISOString()
+                }
+            );
+            logger.info('验证码已更新到数据库');
+        } catch (error) {
+            logger.error('更新验证码到数据库失败，但继续执行:', error);
+            // 即使数据库操作失败，仍继续执行流程
+        }
 
         if (config.registration.manual) {
             return res.json({
@@ -170,20 +185,25 @@ router.post('/complete', async (req, res) => {
             });
         } else {
             // 自动填写验证码
-            const { browser: verifiedBrowser, page: verifiedPage } = await registrationFlow.fillVerificationCode(browser, page, verificationCode);
+            const { browser: verifiedBrowser, page: verifiedPage } = await registrationFlow.fillVerificationCode(browser, page, account, verificationCode);
             browser = verifiedBrowser;
             page = verifiedPage;
         }
 
         // 更新账号状态
-        await accountDataHandler.updateRecord(
-            account.email,
-            { 
-                status: AccountDataHandler.AccountStatus.VERIFIED,
-                updatedAt: new Date().toISOString()
-            }
-        );
-        logger.info('账号状态已更新为已验证');
+        try {
+            await accountDataHandler.updateRecord(
+                account.email,
+                { 
+                    status: AccountDataHandler.AccountStatus.VERIFIED,
+                    updatedAt: new Date().toISOString()
+                }
+            );
+            logger.info('账号状态已更新为已验证');
+        } catch (error) {
+            logger.error('更新账号状态失败，但继续执行:', error);
+            // 即使数据库操作失败，仍继续执行流程
+        }
 
         // 获取 session token
         logger.info('正在获取登录信息...');
@@ -323,6 +343,31 @@ router.post('/register', async (req, res) => {
             updatedAt: new Date().toISOString()
         };
 
+        // 添加新记录
+        const newRecord = {
+            ...account,
+            status: AccountDataHandler.AccountStatus.CREATED,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        
+        try {
+            // 检查邮箱是否已存在
+            const existingRecords = await accountDataHandler.readRecords();
+            const existingRecord = existingRecords.find(r => r.email === account.email);
+            
+            if (existingRecord) {
+                logger.info('邮箱已存在于数据库中，更新现有记录');
+                await accountDataHandler.updateRecord(account.email, newRecord);
+            } else {
+                await accountDataHandler.appendRecord(newRecord);
+            }
+            logger.info('账号信息已保存到数据库');
+        } catch (error) {
+            logger.error('保存账号信息失败，但继续执行:', error);
+            // 即使数据库操作失败，仍继续执行流程
+        }
+
         // 执行注册流程
         logger.info(`开始执行 ${config.registration.type} 注册流程...`);
         let registrationFlow;
@@ -341,6 +386,7 @@ router.post('/register', async (req, res) => {
         logger.info(`${config.registration.type} 注册流程执行完成，等待验证码`);
 
         // 等待接收验证码邮件
+        logger.info(`不使用Cloudflare转发，将使用IMAP邮箱 ${config.email.user} 直接接收验证码`);
         const verificationCode = await getVerificationCode(account, config, {
             browser,
             tempMailPage,
@@ -351,15 +397,20 @@ router.post('/register', async (req, res) => {
         });
 
         // 更新记录
-        await accountDataHandler.updateRecord(
-            account.email,
-            { 
-                status: AccountDataHandler.AccountStatus.CODE_RECEIVED,
-                verificationCode,
-                updatedAt: new Date().toISOString()
-            }
-        );
-        logger.info('验证码已更新到数据库');
+        try {
+            await accountDataHandler.updateRecord(
+                account.email,
+                { 
+                    status: AccountDataHandler.AccountStatus.CODE_RECEIVED,
+                    verificationCode,
+                    updatedAt: new Date().toISOString()
+                }
+            );
+            logger.info('验证码已更新到数据库');
+        } catch (error) {
+            logger.error('更新验证码到数据库失败，但继续执行:', error);
+            // 即使数据库操作失败，仍继续执行流程
+        }
 
         // 自动填写验证码
         const { browser: verifiedBrowser, page: verifiedPage } = await registrationFlow.fillVerificationCode(browser, page, account, verificationCode);
@@ -367,14 +418,19 @@ router.post('/register', async (req, res) => {
         page = verifiedPage;
 
         // 更新账号状态为已验证
-        await accountDataHandler.updateRecord(
-            account.email,
-            { 
-                status: AccountDataHandler.AccountStatus.VERIFIED,
-                updatedAt: new Date().toISOString()
-            }
-        );
-        logger.info('账号状态已更新为已验证');
+        try {
+            await accountDataHandler.updateRecord(
+                account.email,
+                { 
+                    status: AccountDataHandler.AccountStatus.VERIFIED,
+                    updatedAt: new Date().toISOString()
+                }
+            );
+            logger.info('账号状态已更新为已验证');
+        } catch (error) {
+            logger.error('更新账号状态失败，但继续执行:', error);
+            // 即使数据库操作失败，仍继续执行流程
+        }
 
         res.json({
             success: true,
