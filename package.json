@@ -3,13 +3,15 @@
   "version": "1.2.5",
   "main": "src/main/index.js",
   "scripts": {
-    "start": "electron .",
+    "start": "electron-forge start",
     "start:win": "chcp 65001>nul && electron .",
     "dev": "cross-env NODE_ENV=development electron .",
     "dev:win": "chcp 65001>nul && cross-env NODE_ENV=development electron .",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "node scripts/build.js",
-    "build:dir": "node scripts/build.js --dir"
+    "build:dir": "node scripts/build.js --dir",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
   },
   "build": {
     "appId": "org.trial.free.ide.ai",
@@ -98,12 +100,22 @@
   "license": "ISC",
   "description": "Cursor IDE 免费试用工具",
   "devDependencies": {
+    "@electron-forge/cli": "^7.8.0",
+    "@electron-forge/maker-deb": "^7.8.0",
+    "@electron-forge/maker-rpm": "^7.8.0",
+    "@electron-forge/maker-squirrel": "^7.8.0",
+    "@electron-forge/maker-zip": "^7.8.0",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.8.0",
+    "@electron-forge/plugin-fuses": "^7.8.0",
+    "@electron/fuses": "^1.8.0",
     "cross-env": "^7.0.3",
     "electron": "^33.0.0",
-    "electron-builder": "^25.1.8",
     "javascript-obfuscator": "^4.1.1",
     "nan": "^2.22.1",
     "node-gyp": "^11.1.0",
     "nodemon": "^3.0.3"
+  },
+  "dependencies": {
+    "electron-squirrel-startup": "^1.0.1"
   }
 }
