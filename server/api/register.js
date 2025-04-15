@@ -37,7 +37,38 @@ async function getVerificationCode(account, config, { browser = null, tempMailPa
         verificationCode = await emailHandler.waitForVerificationEmail(registrationFlow, account);
     }
 
-    logger.info(`收到验证码: ${verificationCode}`);
+    // 确保验证码是字符串
+    if (verificationCode) {
+        if (typeof verificationCode === 'object') {
+            logger.warn('收到的验证码是对象类型，尝试提取字符串值');
+            // 尝试从对象中提取验证码
+            if (verificationCode.verificationCode) {
+                verificationCode = verificationCode.verificationCode;
+            } else if (verificationCode.code) {
+                verificationCode = verificationCode.code;
+            } else {
+                // 尝试找到任何看起来像验证码的值
+                for (const key in verificationCode) {
+                    const value = verificationCode[key];
+                    if (typeof value === 'string' && /^\d{6}$/.test(value)) {
+                        verificationCode = value;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 最终验证
+        if (typeof verificationCode !== 'string') {
+            verificationCode = String(verificationCode);
+            logger.warn(`转换后的验证码类型: ${typeof verificationCode}`);
+        }
+
+        logger.info(`收到验证码: ${verificationCode}`);
+    } else {
+        throw new Error('获取验证码失败，返回值为空');
+    }
+
     return verificationCode;
 }
 

@@ -82,6 +82,17 @@ const defaultConfig = {
     },
     cursor: {
         executablePath: '', // Cursor可执行文件的路径，根据不同平台有不同默认路径
+    },
+    human_behavior: {
+        enabled: true, // 是否启用人类行为模拟
+        typingSpeed: {
+            min: 50, // 最小打字延迟（毫秒）
+            max: 200 // 最大打字延迟（毫秒）
+        },
+        movementDelay: {
+            min: 500, // 最小移动延迟（毫秒）
+            max: 2000 // 最大移动延迟（毫秒）
+        }
     }
 };
 

@@ -120,6 +120,37 @@ class HumanBehavior {
         ];
     }
 
+    /**
+     * 根据配置更新延迟参数
+     * @param {Object} config 应用配置对象
+     */
+    updateFromConfig(config) {
+        if (config && config.human_behavior) {
+            const behaviorConfig = config.human_behavior;
+            
+            // 更新打字速度
+            if (behaviorConfig.typingSpeed) {
+                if (behaviorConfig.typingSpeed.min !== undefined) {
+                    this.typeMinDelay = Number(behaviorConfig.typingSpeed.min);
+                }
+                if (behaviorConfig.typingSpeed.max !== undefined) {
+                    this.typeMaxDelay = Number(behaviorConfig.typingSpeed.max);
+                }
+            }
+            
+            // 更新动作延迟
+            if (behaviorConfig.movementDelay) {
+                if (behaviorConfig.movementDelay.min !== undefined) {
+                    this.minDelay = Number(behaviorConfig.movementDelay.min);
+                }
+                if (behaviorConfig.movementDelay.max !== undefined) {
+                    this.maxDelay = Number(behaviorConfig.movementDelay.max);
+                }
+            }
+            
+            logger.info(`已更新人类行为模拟参数: 打字延迟=${this.typeMinDelay}-${this.typeMaxDelay}ms, 动作延迟=${this.minDelay}-${this.maxDelay}ms`);
+        }
+    }
 
     // Private helper methods
     #getRandomItem(array) {

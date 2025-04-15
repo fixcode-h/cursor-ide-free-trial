@@ -18,7 +18,24 @@ const config = require('../utils/config');
 class Cursor {
     constructor() {
         this.url = 'https://cursor.sh';
+        
+        // 加载配置
+        const config = require('../utils/config').getConfig();
+        
+        // 初始化人类行为模拟器
         this.humanBehavior = new HumanBehavior();
+        
+        // 人类行为模拟配置
+        const enabled = config.human_behavior?.enabled;
+        this.simulateHuman = enabled !== undefined ? enabled : true; // 默认启用
+        
+        logger.info(`人类行为模拟状态: ${this.simulateHuman ? '已启用' : '已禁用'}`);
+        
+        // 将配置传递给人类行为模拟器
+        this.humanBehavior.updateFromConfig(config);
+        
+        // 代理配置
+        this.proxyConfig = config.proxy;
         
         // 获取资源路径 - 根据环境变量调整
         this.resourcePath = process.env.NODE_ENV === 'development'
@@ -52,8 +69,10 @@ class Cursor {
             await page.goto(this.url);
 
             // 模拟初始浏览行为
-            await this.humanBehavior.simulateHumanBehavior(page);
-            logger.info('完成初始人类行为模拟');
+            if (this.simulateHuman) {
+                await this.humanBehavior.simulateHumanBehavior(page);
+                logger.info('完成初始人类行为模拟');
+            }
 
             // 等待并点击登录按钮
             const loginButtonSelector = 'a[href^="/api/auth/login"]';
@@ -63,7 +82,9 @@ class Cursor {
             logger.info('已点击登录按钮并等待页面跳转完成');
 
             // 模拟浏览行为
-            await this.humanBehavior.simulateHumanBehavior(page);
+            if (this.simulateHuman) {
+                await this.humanBehavior.simulateHumanBehavior(page);
+            }
 
             // 等待邮箱输入框出现，使用更精确的选择器
             const emailSelector = 'input[type="email"][name="email"]';
@@ -73,15 +94,23 @@ class Cursor {
             });
 
             // 模拟初始浏览行为
-            await this.humanBehavior.simulateHumanBehavior(page);
-            logger.info('完成初始人类行为模拟');
+            if (this.simulateHuman) {
+                await this.humanBehavior.simulateHumanBehavior(page);
+                logger.info('完成初始人类行为模拟');
+            }
 
             // 填写邮箱
-            await this.humanBehavior.simulateHumanTyping(page, emailSelector, account.email);
+            if (this.simulateHuman) {
+                await this.humanBehavior.simulateHumanTyping(page, emailSelector, account.email);
+            } else {
+                await page.type(emailSelector, account.email);
+            }
             logger.info('已填写邮箱');
 
             // 模拟思考行为
-            await this.humanBehavior.simulateHumanBehavior(page, { duration: 2000, movements: 2 });
+            if (this.simulateHuman) {
+                await this.humanBehavior.simulateHumanBehavior(page, { duration: 2000, movements: 2 });
+            }
 
             // 点击继续按钮
             const continueButtonSelector = 'button[type="submit"]';
@@ -95,15 +124,23 @@ class Cursor {
             });
 
             // 模拟浏览行为
-            await this.humanBehavior.simulateHumanBehavior(page);
+            if (this.simulateHuman) {
+                await this.humanBehavior.simulateHumanBehavior(page);
+            }
             
             // 填写密码
             const passwordSelector = 'input[type="password"][name="password"]';
-            await this.humanBehavior.simulateHumanTyping(page, passwordSelector, account.password);
+            if (this.simulateHuman) {
+                await this.humanBehavior.simulateHumanTyping(page, passwordSelector, account.password);
+            } else {
+                await page.type(passwordSelector, account.password);
+            }
             logger.info('已填写密码');
 
             // 模拟思考行为
-            await this.humanBehavior.simulateHumanBehavior(page, { duration: 2000, movements: 2 });
+            if (this.simulateHuman) {
+                await this.humanBehavior.simulateHumanBehavior(page, { duration: 2000, movements: 2 });
+            }
 
             // 点击登录按钮
             const signInButtonSelector = 'button[type="submit"][name="intent"][value="password"]';
@@ -127,7 +164,9 @@ class Cursor {
             logger.info('登录验证成功：已进入settings页面');
 
             // 模拟浏览行为
-            await this.humanBehavior.simulateHumanBehavior(page);
+            if (this.simulateHuman) {
+                await this.humanBehavior.simulateHumanBehavior(page);
+            }
 
             // 返回浏览器和页面对象，以便后续操作
             return { browser, page };
@@ -187,7 +226,9 @@ class Cursor {
             logger.info('已打开 Cursor 页面');
             
             // 模拟初始浏览行为
-            await this.humanBehavior.simulateHumanBehavior(page);
+            if (this.simulateHuman) {
+                await this.humanBehavior.simulateHumanBehavior(page);
+            }
 
             // 等待并点击登录按钮
             const loginButtonSelector = 'a[href^="/api/auth/login"]';
@@ -197,7 +238,9 @@ class Cursor {
             logger.info('已点击登录按钮并等待页面跳转完成');
             
             // 模拟浏览行为
-            await this.humanBehavior.simulateHumanBehavior(page);
+            if (this.simulateHuman) {
+                await this.humanBehavior.simulateHumanBehavior(page);
+            }
             
             const signUpSelector = 'a[href^="/sign-up"]';
             await page.waitForSelector(signUpSelector);
@@ -206,59 +249,245 @@ class Cursor {
             logger.info('已点击注册链接并等待页面跳转完成');
 
             // 模拟浏览行为
-            await this.humanBehavior.simulateHumanBehavior(page);
+            if (this.simulateHuman) {
+                await this.humanBehavior.simulateHumanBehavior(page);
+            }
 
             // 填写注册表单
             logger.info('开始填写注册表单...');
             
+            // 等待页面完全加载，确保表单元素已经渲染
+            // await delay(2000); -- 改用智能等待方式
+            
+            // 获取页面上所有的输入字段，帮助调试
+            const formInputs = await page.evaluate(() => {
+                const inputs = Array.from(document.querySelectorAll('input'));
+                return inputs.map(input => ({
+                    name: input.name,
+                    placeholder: input.placeholder,
+                    type: input.type,
+                    id: input.id,
+                    isVisible: input.offsetWidth > 0 && input.offsetHeight > 0
+                }));
+            });
+            
+            logger.info(`表单页面包含 ${formInputs.length} 个输入字段: ${JSON.stringify(formInputs.filter(input => input.isVisible))}`);
+            
+            // 尝试不同的名字输入框选择器
+            const firstNameSelectors = [
+                'input[name="first_name"][placeholder="Your first name"]',
+                'input[name="first_name"]',
+                'input[placeholder*="first name" i]',
+                'input[placeholder*="名字" i]',
+                'input[id*="first" i]',
+                'input[name*="first" i]'
+            ];
+            
             // 填写名字
-            const firstNameSelector = 'input[name="first_name"][placeholder="Your first name"]';
-            await this.humanBehavior.simulateHumanTyping(page, firstNameSelector, userInfo.firstname.toString().trim());
+            const firstNameFilled = await this.waitAndFillField(page, firstNameSelectors, userInfo.firstname.toString().trim(), {
+                maxAttempts: 15,
+                interval: 500,
+                failMessage: '无法找到名字输入框'
+            });
+            
+            if (!firstNameFilled) {
+                throw new Error('无法找到名字输入框，请检查页面结构是否变化');
+            }
+            
             logger.info('已填写名字');
-
+            
+            // 尝试不同的姓氏输入框选择器
+            const lastNameSelectors = [
+                'input[name="last_name"][placeholder="Your last name"]',
+                'input[name="last_name"]',
+                'input[placeholder*="last name" i]',
+                'input[placeholder*="姓氏" i]',
+                'input[id*="last" i]',
+                'input[name*="last" i]'
+            ];
+            
             // 填写姓氏
-            const lastNameSelector = 'input[name="last_name"][placeholder="Your last name"]';
-            await this.humanBehavior.simulateHumanTyping(page, lastNameSelector, userInfo.lastname.toString().trim());
+            const lastNameFilled = await this.waitAndFillField(page, lastNameSelectors, userInfo.lastname.toString().trim(), {
+                maxAttempts: 10,
+                interval: 500,
+                failMessage: '无法找到姓氏输入框'
+            });
+            
+            if (!lastNameFilled) {
+                throw new Error('无法找到姓氏输入框，请检查页面结构是否变化');
+            }
+            
             logger.info('已填写姓氏');
-
+            
+            // 尝试不同的邮箱输入框选择器
+            const emailSelectors = [
+                'input[type="email"][name="email"][placeholder="Your email address"]',
+                'input[type="email"][name="email"]',
+                'input[type="email"]',
+                'input[placeholder*="email" i]',
+                'input[name="email"]'
+            ];
+            
             // 填写邮箱
-            const emailSelector = 'input[type="email"][name="email"][placeholder="Your email address"]';
-            await this.humanBehavior.simulateHumanTyping(page, emailSelector, userInfo.email.toString().trim());
+            const emailFilled = await this.waitAndFillField(page, emailSelectors, userInfo.email.toString().trim(), {
+                maxAttempts: 10,
+                interval: 500,
+                failMessage: '无法找到邮箱输入框'
+            });
+            
+            if (!emailFilled) {
+                throw new Error('无法找到邮箱输入框，请检查页面结构是否变化');
+            }
+            
             logger.info('已填写邮箱');
-
+            
             // 模拟思考行为
-            await this.humanBehavior.simulateHumanBehavior(page, { duration: 2000, movements: 2 });
-
+            if (this.simulateHuman) {
+                await this.humanBehavior.simulateHumanBehavior(page, { duration: 2000, movements: 2 });
+            }
+            
+            // 尝试不同的继续按钮选择器
+            const continueButtonSelectors = [
+                'button[type="submit"][value="sign-up"]',
+                'button[type="submit"]',
+                'button:contains("Continue")',
+                'button:contains("Next")',
+                'button:contains("Sign up")',
+                'button.signup-button',
+                'button.continue-button'
+            ];
+            
             // 点击继续按钮
-            const continueButtonSelector = 'button[type="submit"][value="sign-up"]';
-            await page.waitForSelector(continueButtonSelector);
-            await page.click(continueButtonSelector);
+            const continueClicked = await this.waitAndClick(page, continueButtonSelectors, {
+                maxAttempts: 12,
+                interval: 500,
+                failMessage: '无法找到继续按钮'
+            });
+            
+            if (!continueClicked) {
+                // 尝试查找任何类型的按钮
+                const genericButtonClicked = await this.waitAndClick(page, 'button', {
+                    maxAttempts: 5,
+                    interval: 500
+                });
+                
+                if (!genericButtonClicked) {
+                    throw new Error('无法找到继续按钮，请检查页面结构是否变化');
+                }
+                logger.warn('使用通用按钮选择器点击成功');
+            }
+            
             logger.info('已点击继续按钮');
-
-            // 等待跳转到密码页面
-            await page.waitForNavigation();
-            logger.info('已跳转到密码页面');
-
+            
+            // 等待页面跳转、加载完成
+            try {
+                await page.waitForNavigation({ timeout: 10000 });
+                logger.info('已跳转到密码页面');
+            } catch (error) {
+                // 可能没有导航事件，但页面内容已经变化
+                logger.warn('未检测到页面跳转，但继续执行');
+            }
+            
+            // 确保页面内容已更新
+            // await delay(2000); -- 改用智能等待方式
+            
+            // 检查页面是否变化到密码输入页面
+            const isPasswordPage = await page.evaluate(() => {
+                // 查找密码输入框
+                const passwordInput = document.querySelector('input[type="password"]');
+                // 页面文本是否包含密码相关的词语
+                const pageText = document.body.innerText.toLowerCase();
+                const containsPasswordText = 
+                    pageText.includes('password') || 
+                    pageText.includes('密码') || 
+                    pageText.includes('set') || 
+                    pageText.includes('create');
+                return passwordInput !== null || containsPasswordText;
+            });
+            
+            if (!isPasswordPage) {
+                logger.warn('可能未成功跳转到密码页面，尝试查找页面元素');
+            }
+            
             // 模拟浏览行为
-            await this.humanBehavior.simulateHumanBehavior(page);
-
+            if (this.simulateHuman) {
+                await this.humanBehavior.simulateHumanBehavior(page);
+            }
+            
+            // 尝试不同的密码输入框选择器
+            const passwordSelectors = [
+                'input[type="password"]',
+                'input[name="password"]',
+                'input[placeholder*="password" i]',
+                'input[placeholder*="密码" i]',
+                'input[id*="password" i]'
+            ];
+            
             // 填写密码
-            const passwordSelector = 'input[type="password"]';
-            await this.humanBehavior.simulateHumanTyping(page, passwordSelector, userInfo.password.toString().trim());
+            const passwordFilled = await this.waitAndFillField(page, passwordSelectors, userInfo.password.toString().trim(), {
+                maxAttempts: 15,
+                interval: 500,
+                failMessage: '无法找到密码输入框'
+            });
+            
+            if (!passwordFilled) {
+                // 记录页面当前状态
+                const html = await page.content();
+                logger.error(`无法找到密码输入框，页面HTML长度: ${html.length}`);
+                throw new Error('无法找到密码输入框，请检查页面结构是否变化');
+            }
+            
             logger.info('已填写密码');
-
+            
             // 模拟思考行为
-            await this.humanBehavior.simulateHumanBehavior(page, { duration: 2000, movements: 2 });
-
+            if (this.simulateHuman) {
+                await this.humanBehavior.simulateHumanBehavior(page, { duration: 2000, movements: 2 });
+            }
+            
+            // 尝试不同的注册按钮选择器
+            const registerButtonSelectors = [
+                'button[type="submit"]',
+                'button:contains("Register")',
+                'button:contains("Sign up")',
+                'button:contains("Complete")',
+                'button:contains("Create")',
+                'button.register-button',
+                'button.signup-button'
+            ];
+            
             // 点击注册按钮
-            const registerButtonSelector = 'button[type="submit"]';
-            await page.waitForSelector(registerButtonSelector);
-            await page.click(registerButtonSelector);
+            const registerClicked = await this.waitAndClick(page, registerButtonSelectors, {
+                maxAttempts: 12,
+                interval: 500,
+                failMessage: '无法找到注册按钮'
+            });
+            
+            if (!registerClicked) {
+                // 尝试查找任何类型的按钮
+                const genericButtonClicked = await this.waitAndClick(page, 'button', {
+                    maxAttempts: 5,
+                    interval: 500
+                });
+                
+                if (!genericButtonClicked) {
+                    throw new Error('无法找到注册按钮，请检查页面结构是否变化');
+                }
+                logger.warn('使用通用按钮选择器点击成功');
+            }
+            
             logger.info('已点击注册按钮');
-
-            // 等待跳转到验证码页面
-            await page.waitForNavigation();
-            logger.info('已跳转到验证码页面');
+            
+            // 等待页面跳转
+            try {
+                await page.waitForNavigation({ timeout: 10000 });
+                logger.info('已跳转到验证码页面');
+            } catch (error) {
+                logger.warn('未检测到页面跳转，但继续执行...');
+                
+                // 等待一段时间，让页面有机会更新内容
+                // 我们不使用智能等待，因为我们不知道具体要等什么元素
+                await delay(3000);
+            }
 
             // 返回浏览器和页面对象，以便后续填写验证码
             return { browser, page };
@@ -273,52 +502,273 @@ class Cursor {
         }
     }
 
+    /**
+     * 填写验证码
+     * @param {import('puppeteer').Browser} browser Puppeteer浏览器实例
+     * @param {import('puppeteer').Page} page Puppeteer页面实例
+     * @param {Object} account 账号信息对象
+     * @param {string|Object} verificationCode 验证码或包含验证码的对象
+     * @returns {Promise<{browser: import('puppeteer').Browser, page: import('puppeteer').Page}>} 浏览器和页面对象
+     */
     async fillVerificationCode(browser, page, account, verificationCode) {
+        logger.info('开始填写验证码...');
+        
         try {
-            logger.info('开始填写验证码...');
+            // 如果verificationCode是对象，尝试从中提取验证码
+            let codeValue = verificationCode;
+            if (verificationCode && typeof verificationCode === 'object') {
+                // 如果对象有verificationCode属性，使用该属性
+                if (verificationCode.verificationCode) {
+                    codeValue = verificationCode.verificationCode;
+                } 
+                // 如果对象有code属性，使用该属性
+                else if (verificationCode.code) {
+                    codeValue = verificationCode.code;
+                }
+                // 查找任何看起来像验证码的属性
+                else {
+                    for (const key in verificationCode) {
+                        const value = verificationCode[key];
+                        if (typeof value === 'string' && /^\d{6}$/.test(value)) {
+                            codeValue = value;
+                            break;
+                        }
+                    }
+                }
+            }
             
             // 验证验证码格式
-            if (!verificationCode || typeof verificationCode !== 'string' || verificationCode.trim() === '') {
-                throw new Error('验证码不能为空');
+            if (!codeValue) {
+                logger.error('验证码为空');
+                return { browser, page };
             }
-
-            // 模拟初始浏览行为
-            await this.humanBehavior.simulateHumanBehavior(page, { duration: 1500, movements: 3 });
-
-            // 等待第一个验证码输入框出现
-            const codeInputSelector = 'input[data-test="otp-input"]';
-            await page.waitForSelector(codeInputSelector);
-
-            // 获取所有验证码输入框
-            const inputs = await page.$$('input[inputmode="numeric"][maxlength="1"]');
             
-            // 逐个填写验证码数字，每个数字之间添加随机延迟
-            const codeDigits = verificationCode.trim().split('');
-            for (let i = 0; i < codeDigits.length && i < inputs.length; i++) {
-                // 每个数字输入前添加随机延迟
-                await delay(500 + Math.random() * 1000);
-                await inputs[i].type(codeDigits[i]);
-                logger.info(`已填写第 ${i + 1} 位验证码`);
+            if (typeof codeValue !== 'string') {
+                logger.info(`验证码类型: ${typeof codeValue}，尝试转换为字符串`);
+                codeValue = String(codeValue);
             }
-
-            // 等待页面自动跳转
-            await page.waitForNavigation({ timeout: 30000 }).catch(error => {
-                logger.warn('等待页面跳转超时，可能已经跳转完成');
+            
+            // 清理并规范化验证码
+            const code = codeValue.trim();
+            logger.info(`正在处理验证码: '${code}'`);
+            
+            // 验证长度（通常是6位）
+            if (code.length !== 6 || !/^\d+$/.test(code)) {
+                logger.error(`验证码格式错误，应为6位数字，实际为: '${code}', 长度: ${code.length}, 是否全数字: ${/^\d+$/.test(code)}`);
+                return { browser, page };
+            }
+            
+            logger.info('验证码有效，开始查找输入字段...');
+            
+            // 定义可能的验证码输入字段选择器
+            const verificationSelectors = [
+                'input[placeholder*="code"]',
+                'input[placeholder*="Code"]',
+                'input[aria-label*="verification"]',
+                'input[aria-label*="Verification"]',
+                'input[type="text"][name*="code"]',
+                'input.verification-code-input',
+                'input[data-testid="verification-code-input"]',
+                'input[inputmode="numeric"]',
+                // 更宽泛的选择器
+                'input[type="text"]'
+            ];
+            
+            // 获取页面上所有的输入字段，帮助调试
+            const inputElements = await page.evaluate(() => {
+                return Array.from(document.querySelectorAll('input')).map(el => ({
+                    type: el.type,
+                    name: el.name || '',
+                    id: el.id || '',
+                    placeholder: el.placeholder || '',
+                    class: el.className || '',
+                    isVisible: el.offsetWidth > 0 && el.offsetHeight > 0
+                }));
             });
-            logger.info('验证码填写完成');
-
-            // 验证是否成功跳转到设置页面
-            const currentUrl = page.url();
-            if (!currentUrl.includes('/settings')) {
-                logger.error('页面未跳转到设置页面');
-                throw new Error('登录验证失败：未能进入设置页面');
+            
+            logger.info(`页面上找到 ${inputElements.length} 个输入框元素: ${JSON.stringify(inputElements.filter(el => el.isVisible))}`);
+            
+            // 检查是否有多个单独的输入框（每个数字一个）
+            const multipleInputs = await page.evaluate(() => {
+                const inputs = document.querySelectorAll('input[inputmode="numeric"][maxlength="1"]');
+                if (inputs.length >= 6) {
+                    return true;
+                }
+                
+                // 尝试其他可能的选择器
+                const altInputs = document.querySelectorAll('input[maxlength="1"]');
+                return altInputs.length >= 6;
+            });
+            
+            let fillSuccess = false;
+            
+            if (multipleInputs) {
+                logger.info('检测到多个单独的验证码输入框');
+                
+                // 等待验证码输入框出现
+                const singleInputSelectors = [
+                    'input[inputmode="numeric"][maxlength="1"]',
+                    'input[maxlength="1"]'
+                ];
+                
+                // 寻找验证码输入框
+                const result = await this.waitForElement(page, singleInputSelectors, {
+                    maxAttempts: 15,
+                    interval: 500,
+                    failMessage: '找不到验证码单个输入框'
+                });
+                
+                if (result.success) {
+                    // 找到第一个输入框后，获取所有输入框
+                    let inputs;
+                    try {
+                        inputs = await page.$$(result.selector);
+                        logger.info(`找到 ${inputs.length} 个验证码输入框`);
+                        
+                        if (inputs.length >= code.length) {
+                            if (this.simulateHuman) {
+                                // 模拟人类行为，逐个填写数字并增加随机延迟
+                                for (let i = 0; i < code.length && i < inputs.length; i++) {
+                                    // 随机延迟
+                                    await delay(300 + Math.random() * 700);
+                                    await inputs[i].type(code.charAt(i));
+                                    logger.info(`已填写第 ${i + 1} 位验证码: ${code.charAt(i)}`);
+                                }
+                            } else {
+                                // 直接填写所有数字
+                                for (let i = 0; i < code.length && i < inputs.length; i++) {
+                                    await inputs[i].type(code.charAt(i));
+                                }
+                                logger.info(`直接填写所有验证码数字: ${code}`);
+                            }
+                            
+                            // 验证是否成功填写
+                            const allFilled = await page.evaluate(() => {
+                                const inputs = document.querySelectorAll('input[maxlength="1"]');
+                                for (const input of inputs) {
+                                    if (!input.value) {
+                                        return false;
+                                    }
+                                }
+                                return true;
+                            });
+                            
+                            if (!allFilled) {
+                                logger.warn('可能未能填写所有验证码位，尝试其他方法');
+                            } else {
+                                logger.info('所有验证码位已成功填写');
+                                fillSuccess = true;
+                            }
+                        } else {
+                            logger.error(`找到 ${inputs.length} 个输入框，但需要 ${code.length} 个`);
+                        }
+                    } catch (error) {
+                        logger.error('填写多个验证码输入框失败:', error.message);
+                    }
+                } else {
+                    logger.warn('未找到多个验证码输入框，尝试单个输入框方式');
+                }
             }
-
-            logger.info('登录验证成功：已进入设置页面');
+            
+            // 如果多输入框方式失败，尝试单输入框方式
+            if (!fillSuccess) {
+                // 尝试找到单个验证码输入框并填写
+                const inputResult = await this.waitAndFillField(page, verificationSelectors, code, {
+                    maxAttempts: 15,
+                    interval: 500,
+                    failMessage: '找不到验证码输入框'
+                });
+                
+                if (inputResult) {
+                    fillSuccess = true;
+                    logger.info('已填写验证码到单个输入框');
+                } else {
+                    // 尝试通过键盘输入验证码
+                    logger.warn('未找到验证码输入框，尝试通过键盘输入');
+                    try {
+                        await page.keyboard.type(code);
+                        logger.info('通过键盘输入了验证码');
+                        fillSuccess = true;
+                    } catch (error) {
+                        logger.error('键盘输入验证码失败:', error.message);
+                        return { browser, page };
+                    }
+                }
+            }
+            
+            // 尝试找到提交按钮并点击
+            const submitSelectors = [
+                'button[type="submit"]',
+                'button:contains("Verify")',
+                'button:contains("Submit")',
+                'button:contains("Continue")',
+                'button.verification-submit-button',
+                'button[data-testid="verification-submit-button"]',
+                'button' // 通用选择器作为最后尝试
+            ];
+            
+            // 点击提交按钮
+            const submitClicked = await this.waitAndClick(page, submitSelectors, {
+                maxAttempts: 12,
+                interval: 500,
+                failMessage: '找不到验证码提交按钮'
+            });
+            
+            if (!submitClicked) {
+                // 如果未找到提交按钮，尝试按回车键提交
+                logger.info('未找到提交按钮，尝试按回车键提交');
+                await page.keyboard.press('Enter');
+            }
+            
+            // 等待页面反应 - 等待任何导航或内容变化
+            try {
+                await page.waitForNavigation({ timeout: 8000 });
+                logger.info('验证码提交后页面发生了跳转');
+            } catch (error) {
+                logger.info('验证码提交后未检测到页面跳转，等待内容变化');
+                // 等待可能的内容变化或确认消息
+                await this.waitForElement(page, [
+                    '.success-message', 
+                    '.dashboard', 
+                    '.welcome', 
+                    'div:contains("Welcome")',
+                    'div:contains("Success")'
+                ], {
+                    maxAttempts: 10,
+                    interval: 1000,
+                    visible: true,
+                    failMessage: '未找到成功提示元素'
+                });
+            }
+            
+            // 检查是否有错误信息
+            const hasError = await page.evaluate(() => {
+                const errorMessages = document.querySelectorAll('.error, .error-message, [role="alert"]');
+                for (const error of errorMessages) {
+                    if (error.offsetWidth > 0 && error.offsetHeight > 0 && 
+                        (error.textContent.toLowerCase().includes('invalid') ||
+                         error.textContent.toLowerCase().includes('error') ||
+                         error.textContent.toLowerCase().includes('wrong'))) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+            
+            if (hasError) {
+                logger.error('提交验证码后检测到错误消息');
+                return { browser, page };
+            }
+            
+            // 检查页面URL变化，判断是否验证成功
+            const currentUrl = page.url();
+            logger.info(`当前页面URL: ${currentUrl}`);
+            
+            logger.info('验证码填写完成，未检测到错误');
             return { browser, page };
         } catch (error) {
-            logger.error('验证码填写出错:', error);
-            throw error;
+            logger.error('填写验证码过程中出错:', error);
+            return { browser, page };
         }
     }
 
@@ -970,6 +1420,338 @@ class Cursor {
             }
         } catch (error) {
             logger.error('禁用自动更新失败:', error);
+            return false;
+        }
+    }
+
+    /**
+     * 填写表单字段 - 根据配置选择模拟人类行为或直接填写
+     * @param {import('puppeteer').Page} page Puppeteer页面实例 
+     * @param {string} selector 元素选择器
+     * @param {string} value 要填写的值
+     * @returns {Promise<boolean>} 是否成功填写
+     */
+    async fillField(page, selector, value) {
+        try {
+            // 等待元素可见
+            await page.waitForSelector(selector, { visible: true, timeout: 5000 });
+            
+            if (this.simulateHuman) {
+                // 模拟人类行为填写
+                logger.info(`使用人类行为模拟填写字段: ${selector}`);
+                await this.humanBehavior.simulateHumanTyping(page, selector, value);
+            } else {
+                // 直接填写
+                logger.info(`直接填写字段: ${selector}`);
+                
+                // 清除现有内容
+                await page.click(selector, { clickCount: 3 });
+                await page.keyboard.press('Backspace');
+                
+                // 直接输入完整内容
+                await page.type(selector, value);
+            }
+            
+            return true;
+        } catch (error) {
+            logger.error(`填写字段 ${selector} 失败:`, error.message);
+            return false;
+        }
+    }
+    
+    /**
+     * 尝试使用多个选择器填写字段
+     * @param {import('puppeteer').Page} page Puppeteer页面实例
+     * @param {string[]} selectors 选择器数组
+     * @param {string} value 要填写的值
+     * @returns {Promise<boolean>} 是否成功填写
+     */
+    async fillFieldWithMultipleSelectors(page, selectors, value) {
+        for (const selector of selectors) {
+            try {
+                const elementExists = await page.$(selector);
+                if (elementExists) {
+                    const success = await this.fillField(page, selector, value);
+                    if (success) {
+                        logger.info(`使用选择器 "${selector}" 成功填写值`);
+                        return true;
+                    }
+                }
+            } catch (error) {
+                logger.debug(`使用选择器 "${selector}" 填写失败: ${error.message}`);
+            }
+        }
+        
+        logger.error('所有选择器都无法匹配或填写失败');
+        return false;
+    }
+    
+    /**
+     * 点击按钮 - 根据配置选择是否添加人类行为延迟
+     * @param {import('puppeteer').Page} page Puppeteer页面实例
+     * @param {string} selector 按钮选择器
+     * @returns {Promise<boolean>} 是否成功点击
+     */
+    async clickButton(page, selector) {
+        try {
+            // 等待元素可见
+            await page.waitForSelector(selector, { visible: true, timeout: 5000 });
+            
+            if (this.simulateHuman) {
+                // 模拟人类行为点击
+                logger.info(`使用人类行为模拟点击按钮: ${selector}`);
+                
+                // 随机延迟
+                const clickDelay = this.humanBehavior.minDelay + Math.random() * (this.humanBehavior.maxDelay - this.humanBehavior.minDelay);
+                await delay(clickDelay);
+                
+                // 模拟鼠标悬停后点击
+                await page.hover(selector);
+                await delay(300 + Math.random() * 500);
+                await page.click(selector);
+            } else {
+                // 直接点击
+                logger.info(`直接点击按钮: ${selector}`);
+                await page.click(selector);
+            }
+            
+            return true;
+        } catch (error) {
+            logger.error(`点击按钮 ${selector} 失败:`, error.message);
+            return false;
+        }
+    }
+    
+    /**
+     * 尝试使用多个选择器点击按钮
+     * @param {import('puppeteer').Page} page Puppeteer页面实例
+     * @param {string[]} selectors 选择器数组
+     * @returns {Promise<boolean>} 是否成功点击
+     */
+    async clickButtonWithMultipleSelectors(page, selectors) {
+        for (const selector of selectors) {
+            try {
+                const elementExists = await page.$(selector);
+                if (elementExists) {
+                    const success = await this.clickButton(page, selector);
+                    if (success) {
+                        logger.info(`使用选择器 "${selector}" 成功点击按钮`);
+                        return true;
+                    }
+                }
+            } catch (error) {
+                logger.debug(`使用选择器 "${selector}" 点击失败: ${error.message}`);
+            }
+        }
+        
+        logger.error('所有按钮选择器都无法匹配或点击失败');
+        return false;
+    }
+    
+    /**
+     * 初始化浏览器和页面
+     * @returns {Promise<{browser: Browser, page: Page}>} 浏览器和页面对象
+     */
+    async initBrowser() {
+        logger.info('正在初始化浏览器...');
+        const puppeteer = require('puppeteer');
+        
+        // 创建浏览器实例
+        const browser = await puppeteer.launch({
+            headless: false, // 默认有头模式以便于调试
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--disable-gpu',
+                '--window-size=1920,1080',
+            ]
+        });
+        
+        // 创建新页面
+        const page = await browser.newPage();
+        
+        // 设置视口大小
+        await page.setViewport({ width: 1920, height: 1080 });
+        
+        // 如果启用了人类行为模拟，设置用户代理
+        if (this.simulateHuman) {
+            await page.setUserAgent(this.humanBehavior.getRandomUserAgent());
+        }
+        
+        logger.info('浏览器初始化完成');
+        return { browser, page };
+    }
+
+    /**
+     * 智能等待元素出现
+     * @param {import('puppeteer').Page} page Puppeteer页面实例
+     * @param {string|string[]} selectors 要等待的选择器或选择器数组
+     * @param {Object} options 选项
+     * @param {number} options.maxAttempts 最大尝试次数，默认10次
+     * @param {number} options.interval 每次尝试的间隔时间(毫秒)，默认500ms
+     * @param {boolean} options.visible 是否要求元素可见，默认true
+     * @param {string} options.failMessage 失败时的消息
+     * @returns {Promise<{success: boolean, selector: string|null, element: ElementHandle|null}>} 成功状态和找到的元素
+     */
+    async waitForElement(page, selectors, options = {}) {
+        const {
+            maxAttempts = 10,
+            interval = 500,
+            visible = true,
+            failMessage = '元素未找到'
+        } = options;
+        
+        // 确保selectors是数组
+        const selectorArray = Array.isArray(selectors) ? selectors : [selectors];
+        
+        if (selectorArray.length === 0) {
+            logger.error('没有提供任何选择器');
+            return { success: false, selector: null, element: null };
+        }
+        
+        logger.info(`开始等待元素: [${selectorArray.join(', ')}]，最多尝试${maxAttempts}次`);
+        
+        let attempts = 0;
+        while (attempts < maxAttempts) {
+            attempts++;
+            
+            // 尝试每个选择器
+            for (const selector of selectorArray) {
+                try {
+                    // 检查元素是否存在
+                    const element = await page.$(selector);
+                    
+                    if (element) {
+                        // 如果要求元素可见，检查元素是否可见
+                        if (visible) {
+                            const isVisible = await page.evaluate(el => {
+                                const style = window.getComputedStyle(el);
+                                return style && 
+                                       style.display !== 'none' && 
+                                       style.visibility !== 'hidden' && 
+                                       style.opacity !== '0' &&
+                                       el.offsetWidth > 0 && 
+                                       el.offsetHeight > 0;
+                            }, element);
+                            
+                            if (isVisible) {
+                                logger.info(`第${attempts}次尝试: 找到可见元素 "${selector}"`);
+                                return { success: true, selector, element };
+                            }
+                        } else {
+                            // 不要求可见，元素存在即可
+                            logger.info(`第${attempts}次尝试: 找到元素 "${selector}"`);
+                            return { success: true, selector, element };
+                        }
+                    }
+                } catch (error) {
+                    // 忽略错误，继续尝试下一个选择器
+                }
+            }
+            
+            // 所有选择器都尝试过一遍，但没有找到符合条件的元素
+            if (attempts < maxAttempts) {
+                logger.debug(`第${attempts}次尝试: 未找到元素，${interval}ms后重试...`);
+                await delay(interval);
+            } else {
+                logger.warn(`已达到最大尝试次数(${maxAttempts})，${failMessage}`);
+            }
+        }
+        
+        return { success: false, selector: null, element: null };
+    }
+    
+    /**
+     * 智能等待并填写表单字段
+     * @param {import('puppeteer').Page} page Puppeteer页面实例
+     * @param {string|string[]} selectors 选择器或选择器数组
+     * @param {string} value 要填写的值
+     * @param {Object} options 等待选项
+     * @returns {Promise<boolean>} 是否成功填写
+     */
+    async waitAndFillField(page, selectors, value, options = {}) {
+        // 等待元素出现
+        const result = await this.waitForElement(page, selectors, {
+            ...options,
+            failMessage: '找不到输入字段'
+        });
+        
+        if (!result.success) {
+            return false;
+        }
+        
+        try {
+            // 获取成功的选择器
+            const selector = result.selector;
+            
+            if (this.simulateHuman) {
+                // 模拟人类行为填写
+                logger.info(`使用人类行为模拟填写字段: ${selector}`);
+                await this.humanBehavior.simulateHumanTyping(page, selector, value);
+            } else {
+                // 直接填写
+                logger.info(`直接填写字段: ${selector}`);
+                
+                // 清除现有内容
+                await page.click(selector, { clickCount: 3 });
+                await page.keyboard.press('Backspace');
+                
+                // 直接输入完整内容
+                await page.type(selector, value);
+            }
+            
+            return true;
+        } catch (error) {
+            logger.error(`填写字段失败:`, error.message);
+            return false;
+        }
+    }
+    
+    /**
+     * 智能等待并点击元素
+     * @param {import('puppeteer').Page} page Puppeteer页面实例
+     * @param {string|string[]} selectors 选择器或选择器数组
+     * @param {Object} options 等待选项
+     * @returns {Promise<boolean>} 是否成功点击
+     */
+    async waitAndClick(page, selectors, options = {}) {
+        // 等待元素出现
+        const result = await this.waitForElement(page, selectors, {
+            ...options,
+            failMessage: '找不到可点击元素'
+        });
+        
+        if (!result.success) {
+            return false;
+        }
+        
+        try {
+            // 获取成功的选择器
+            const selector = result.selector;
+            
+            if (this.simulateHuman) {
+                // 模拟人类行为点击
+                logger.info(`使用人类行为模拟点击元素: ${selector}`);
+                
+                // 随机延迟
+                const clickDelay = this.humanBehavior.minDelay + Math.random() * (this.humanBehavior.maxDelay - this.humanBehavior.minDelay);
+                await delay(clickDelay);
+                
+                // 模拟鼠标悬停后点击
+                await page.hover(selector);
+                await delay(300 + Math.random() * 500);
+                await page.click(selector);
+            } else {
+                // 直接点击
+                logger.info(`直接点击元素: ${selector}`);
+                await page.click(selector);
+            }
+            
+            return true;
+        } catch (error) {
+            logger.error(`点击元素失败:`, error.message);
             return false;
         }
     }

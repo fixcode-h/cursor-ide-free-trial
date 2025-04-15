@@ -175,33 +175,54 @@ class EmailHandler {
             throw new Error('IMAP 服务未启用或未初始化');
         }
 
+        // 记录开始等待的时间
         const startTime = Date.now();
+        const startDate = new Date();
+        // 获取一个比当前时间稍早的时间戳，确保能捕获刚刚发送的邮件
+        const searchSince = new Date(startDate.getTime() - 1000); // 30秒前
+
         logger.info('开始等待验证码邮件...');
         logger.info(`直接在邮箱 ${this.config.email.user} 中查找来自 ${flow.getVerificationEmailSender()} 的验证码邮件`);
+        logger.info(`仅查找自 ${searchSince.toISOString()} 之后收到的新邮件`);
+
+        // 存储已处理的邮件UID，避免重复处理
+        const processedUIDs = new Set();
 
         while (Date.now() - startTime < timeout) {
             try {
                 // 使用重试机制执行IMAP操作
                 const messages = await this.executeWithRetryImap(async () => {
                     await this.imapClient.mailboxOpen('INBOX');
-                    // 查询最近的未读邮件，不使用Cloudflare转发，直接查找验证码邮件
+                    
+                    // 查询最近的未读邮件，使用since条件确保只获取注册过程中新收到的邮件
                     return await this.imapClient.search({
                         unseen: true,
-                        from: flow.getVerificationEmailSender()
+                        from: flow.getVerificationEmailSender(),
+                        since: searchSince
                     }, {
-                        sort: ['-date']
+                        sort: ['-date'] // 按日期降序排序，最新的邮件在前
                     });
                 });
 
-                logger.info('搜索到的邮件数量：', messages.length);
+                logger.info(`搜索到的新邮件数量：${messages.length}`);
                 
-                if (messages.length > 0) {
+                // 优先处理最新收到的邮件
+                for (const msgUid of messages) {
+                    // 跳过已处理的邮件
+                    if (processedUIDs.has(msgUid)) {
+                        continue;
+                    }
+                    
+                    // 标记该邮件为已处理
+                    processedUIDs.add(msgUid);
+                    
                     // 使用重试机制获取邮件内容
                     const email = await this.executeWithRetryImap(async () => {
-                        return await this.imapClient.fetchOne(messages[0], {
+                        return await this.imapClient.fetchOne(msgUid, {
                             source: true,
                             uid: true,
-                            flags: true
+                            flags: true,
+                            envelope: true // 获取信封信息，包括日期
                         });
                     });
                     
@@ -210,17 +231,40 @@ class EmailHandler {
                         continue;
                     }
                     
+                    // 检查邮件接收时间
+                    if (email.envelope && email.envelope.date) {
+                        const emailDate = new Date(email.envelope.date);
+                        if (emailDate < searchSince) {
+                            logger.info(`跳过旧邮件，接收时间: ${emailDate.toISOString()}`);
+                            continue;
+                        }
+                        logger.info(`处理新邮件，接收时间: ${emailDate.toISOString()}`);
+                    }
+                    
                     const emailContent = email.source.toString();
                     
                     // 使用传入的解析器提取验证码
-                    const verificationCode = flow.extractVerificationCode(emailContent);
-                    if (verificationCode) {
-                        logger.info('成功获取验证码');
-                        return verificationCode;
+                    try {
+                        const verificationCode = flow.extractVerificationCode(emailContent);
+                        if (verificationCode) {
+                            logger.info(`成功获取验证码: ${verificationCode}`);
+                            
+                            // 在返回前将邮件标记为已读
+                            await this.executeWithRetryImap(async () => {
+                                await this.imapClient.messageFlagsAdd(msgUid, ['\\Seen']);
+                            }).catch(err => logger.warn('标记邮件为已读失败:', err));
+                            
+                            return verificationCode;
+                        } else {
+                            logger.warn('邮件内容中未找到有效的验证码');
+                        }
+                    } catch (parseError) {
+                        logger.error('解析验证码失败:', parseError);
                     }
                 }
                 
                 // 等待指定时间后再次检查
+                logger.info(`未找到包含验证码的新邮件，${pollInterval/1000}秒后重新检查...`);
                 await new Promise(resolve => setTimeout(resolve, pollInterval));
             } catch (error) {
                 logger.error('检查邮件失败:', error);
@@ -229,7 +273,7 @@ class EmailHandler {
             }
         }
         
-        throw new Error('等待验证码超时');
+        throw new Error(`等待验证码超时，已等待${timeout/1000}秒`);
     }
 
     // 关闭连接
