@@ -147,8 +147,6 @@ class HumanBehavior {
                     this.maxDelay = Number(behaviorConfig.movementDelay.max);
                 }
             }
-            
-            logger.info(`已更新人类行为模拟参数: 打字延迟=${this.typeMinDelay}-${this.typeMaxDelay}ms, 动作延迟=${this.minDelay}-${this.maxDelay}ms`);
         }
     }
 
