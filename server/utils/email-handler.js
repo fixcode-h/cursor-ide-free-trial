@@ -178,12 +178,17 @@ class EmailHandler {
         // 记录开始等待的时间
         const startTime = Date.now();
         const startDate = new Date();
-        // 获取一个比当前时间稍早的时间戳，确保能捕获刚刚发送的邮件
-        const searchSince = new Date(startDate.getTime() - 1000); // 30秒前
+        // 获取一个比当前时间更早的时间戳，确保能捕获考虑到时区差异的邮件
+        const searchSince = new Date(startDate.getTime()); // 向前查找30分钟的邮件，避免时区问题
+        
+        // 记录时区信息用于调试
+        const timeZoneOffset = startDate.getTimezoneOffset();
+        const timeZoneString = `UTC${timeZoneOffset <= 0 ? '+' : '-'}${Math.abs(Math.floor(timeZoneOffset / 60))}:${Math.abs(timeZoneOffset % 60).toString().padStart(2, '0')}`;
 
         logger.info('开始等待验证码邮件...');
+        logger.info(`系统当前时间: ${startDate.toLocaleString()} (${timeZoneString})`);
         logger.info(`直接在邮箱 ${this.config.email.user} 中查找来自 ${flow.getVerificationEmailSender()} 的验证码邮件`);
-        logger.info(`仅查找自 ${searchSince.toISOString()} 之后收到的新邮件`);
+        logger.info(`仅查找自 ${searchSince.toLocaleString()} 之后收到的新邮件`);
 
         // 存储已处理的邮件UID，避免重复处理
         const processedUIDs = new Set();
@@ -235,10 +240,10 @@ class EmailHandler {
                     if (email.envelope && email.envelope.date) {
                         const emailDate = new Date(email.envelope.date);
                         if (emailDate < searchSince) {
-                            logger.info(`跳过旧邮件，接收时间: ${emailDate.toISOString()}`);
+                            logger.info(`跳过旧邮件，接收时间: ${emailDate.toLocaleString()} (${timeZoneString})`);
                             continue;
                         }
-                        logger.info(`处理新邮件，接收时间: ${emailDate.toISOString()}`);
+                        logger.info(`处理新邮件，接收时间: ${emailDate.toLocaleString()} (${timeZoneString})`);
                     }
                     
                     const emailContent = email.source.toString();

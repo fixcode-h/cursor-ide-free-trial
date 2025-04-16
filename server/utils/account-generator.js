@@ -185,7 +185,20 @@ class AccountGenerator {
             const password = this.generatePassword();
             const firstname = this.generateFirstname();
             const lastname = this.generateLastname();
-            const email = `${username}${this.config.cloudflare.virtualDomain}`;
+            
+            // 使用IMAP设置下的虚拟域名创建邮箱，确保添加@符号
+            let email;
+            if (this.config.email.imap && this.config.email.imap.virtualDomain) {
+                // 检查域名是否已经包含@
+                const domain = this.config.email.imap.virtualDomain.startsWith('@') 
+                    ? this.config.email.imap.virtualDomain 
+                    : `@${this.config.email.imap.virtualDomain}`;
+                email = `${username}${domain}`;
+            } else {
+                // 如果没有配置IMAP虚拟域名，使用随机域名
+                email = `${username}@example.com`;
+                logger.warn('未配置IMAP虚拟域名，使用默认域名@example.com');
+            }
 
             const account = {
                 username,

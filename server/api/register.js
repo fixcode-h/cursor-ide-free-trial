@@ -123,32 +123,8 @@ router.post('/complete', async (req, res) => {
         // 生成新的账号信息
         logger.info('开始生成新的账号信息...');
         const account = await accountGenerator.generateAccount();
+        logger.info('账号信息生成完成，但尚未保存到数据库');
         
-        // 添加新记录
-        const newRecord = {
-            ...account,
-            status: AccountDataHandler.AccountStatus.CREATED,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
-        
-        try {
-            // 检查邮箱是否已存在
-            const existingRecords = await accountDataHandler.readRecords();
-            const existingRecord = existingRecords.find(r => r.email === account.email);
-            
-            if (existingRecord) {
-                logger.info('邮箱已存在于数据库中，更新现有记录');
-                await accountDataHandler.updateRecord(account.email, newRecord);
-            } else {
-                await accountDataHandler.appendRecord(newRecord);
-            }
-            logger.info('账号信息已保存到数据库');
-        } catch (error) {
-            logger.error('保存账号信息失败，但继续执行:', error);
-            // 即使数据库操作失败，仍继续执行流程
-        }
-
         // 执行注册流程
         logger.info(`开始执行 ${config.registration.type} 注册流程...`);
         let registrationFlow;
@@ -192,26 +168,11 @@ router.post('/complete', async (req, res) => {
             publicMailApi
         });
 
-        // 更新记录
-        try {
-            await accountDataHandler.updateRecord(
-                account.email,
-                { 
-                    status: AccountDataHandler.AccountStatus.CODE_RECEIVED,
-                    verificationCode,
-                    updatedAt: new Date().toISOString()
-                }
-            );
-            logger.info('验证码已更新到数据库');
-        } catch (error) {
-            logger.error('更新验证码到数据库失败，但继续执行:', error);
-            // 即使数据库操作失败，仍继续执行流程
-        }
-
         if (config.registration.manual) {
             return res.json({
                 success: true,
                 message: '请在页面中手动输入验证码',
+                account,
                 verificationCode
             });
         } else {
@@ -219,21 +180,6 @@ router.post('/complete', async (req, res) => {
             const { browser: verifiedBrowser, page: verifiedPage } = await registrationFlow.fillVerificationCode(browser, page, account, verificationCode);
             browser = verifiedBrowser;
             page = verifiedPage;
-        }
-
-        // 更新账号状态
-        try {
-            await accountDataHandler.updateRecord(
-                account.email,
-                { 
-                    status: AccountDataHandler.AccountStatus.VERIFIED,
-                    updatedAt: new Date().toISOString()
-                }
-            );
-            logger.info('账号状态已更新为已验证');
-        } catch (error) {
-            logger.error('更新账号状态失败，但继续执行:', error);
-            // 即使数据库操作失败，仍继续执行流程
         }
 
         // 获取 session token
@@ -244,16 +190,6 @@ router.post('/complete', async (req, res) => {
             throw new Error('获取 session token 失败');
         }
         logger.info('成功获取 session token');
-
-        // 更新账号Cooie
-        await accountDataHandler.updateRecord(
-            account.email,
-            { 
-                cookie: sessionCookie,
-                updatedAt: new Date().toISOString()
-            }
-        );
-        logger.info('账号Cookie已更新');
 
         // 更新认证信息
         const authSuccess = await registrationFlow.updateAuth(
@@ -271,6 +207,28 @@ router.post('/complete', async (req, res) => {
         logger.info('正在重置机器码...');
         await registrationFlow.resetMachineCodes();
         logger.info('机器码重置完成');
+
+        // 只有在整个流程都成功完成后，才将账号添加到数据库
+        const newRecord = {
+            ...account,
+            status: AccountDataHandler.AccountStatus.VERIFIED,
+            verificationCode,
+            cookie: sessionCookie,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        
+        // 检查邮箱是否已存在
+        const existingRecords = await accountDataHandler.readRecords();
+        const existingRecord = existingRecords.find(r => r.email === account.email);
+        
+        if (existingRecord) {
+            logger.info('邮箱已存在于数据库中，更新现有记录');
+            await accountDataHandler.updateRecord(account.email, newRecord);
+        } else {
+            await accountDataHandler.appendRecord(newRecord);
+        }
+        logger.info('账号信息已保存到数据库');
 
         res.json({
             success: true,
@@ -591,6 +549,192 @@ router.post('/login', async (req, res) => {
             error: '初始化登录流程失败',
             message: error.message
         });
+    }
+});
+
+// 快速生成/绑定账号（不执行退出Cursor和重置机器码）
+router.post('/quick-generate', async (req, res) => {
+    let cloudflareManager = null;
+    let accountDataHandler = null;
+    let emailHandler = null;
+    let tempMail = null;
+    let browser = null;
+    let page = null;
+    let tempMailPage = null;
+    let publicMailApi = null;
+    
+    try {
+        // 获取配置
+        const config = getConfig();
+
+        // 初始化数据处理器
+        logger.info('初始化数据处理器...');
+        accountDataHandler = new AccountDataHandler();
+        await accountDataHandler.initialize();
+        logger.info('数据处理器初始化完成');
+
+        // 根据配置初始化邮件处理器
+        logger.info('初始化邮件处理器...');
+        if (config.email.type === 'publicApi') {
+            publicMailApi = new PublicMailApi();
+            logger.info('PublicMailApi 初始化完成');
+        } else if (config.email.type === 'tempmail') {
+            tempMail = new TempMail(config);
+            const { browser: tempMailBrowser, page: tempMailPageResult } = await tempMail.initialize(browser, initialPage);
+            tempMailPage = tempMailPageResult;
+            logger.info('TempMail 初始化完成');
+        } else {
+            emailHandler = new EmailHandler(config);
+            await emailHandler.initialize();
+            logger.info('EmailHandler 初始化完成');
+        }
+
+        // 初始化浏览器
+        logger.info('初始化浏览器...');
+        const browserInitializer = new BrowserInitializer(config);
+        const { browser: initBrowser, page: initialPage } = await browserInitializer.initBrowser();
+        browser = initBrowser;
+        logger.info('浏览器初始化完成');
+
+        // 创建账号生成器实例
+        logger.info('创建账号生成器实例...');
+        const accountGenerator = new AccountGenerator(config);
+        
+        // 生成新的账号信息
+        logger.info('开始生成新的账号信息...');
+        const account = await accountGenerator.generateAccount();
+        logger.info('账号信息生成完成，但尚未保存到数据库');
+        
+        // 执行注册流程
+        logger.info(`开始执行 ${config.registration.type} 注册流程...`);
+        let registrationFlow;
+        if (config.registration.type === 'cursor') {
+            registrationFlow = new Cursor();
+        } else if (config.registration.type === 'copilot') {
+            registrationFlow = new Copilot();
+        } else {
+            throw new Error(`不支持的注册流程类型: ${config.registration.type}`);
+        }
+
+        // 如果是手动模式，打印账号信息并等待用户操作
+        if (config.registration.manual) {
+            // 手动注册流程
+            const { browser: registerBrowser, page: registrationPage } = await registrationFlow.manualRegister(browser, initialPage, account);
+            browser = registerBrowser;
+            page = registrationPage;
+            
+            logger.info('请在浏览器中手动完成注册步骤');
+            return res.json({
+                success: true,
+                message: '请在浏览器中完成手动注册步骤',
+                account
+            });
+        } else {
+            // 自动注册流程
+            const { browser: registerBrowser, page: registrationPage } = await registrationFlow.register(browser, initialPage, account);
+            browser = registerBrowser;
+            page = registrationPage;
+            logger.info(`${config.registration.type} 注册流程执行完成，等待验证码`);
+        }
+
+        // 等待接收验证码邮件
+        logger.info(`使用邮箱 ${config.email.user} 接收验证码`);
+        const verificationCode = await getVerificationCode(account, config, {
+            browser,
+            tempMailPage,
+            registrationFlow,
+            emailHandler,
+            tempMail,
+            publicMailApi
+        });
+
+        if (config.registration.manual) {
+            return res.json({
+                success: true,
+                message: '请在页面中手动输入验证码',
+                account,
+                verificationCode
+            });
+        } else {
+            // 自动填写验证码
+            const { browser: verifiedBrowser, page: verifiedPage } = await registrationFlow.fillVerificationCode(browser, page, account, verificationCode);
+            browser = verifiedBrowser;
+            page = verifiedPage;
+        }
+
+        // 获取 session token
+        logger.info('正在获取登录信息...');
+        const sessionCookie = await registrationFlow.getSessionCookie(page);
+        const sessionToken = await registrationFlow.getSessionToken(sessionCookie);
+        if (!sessionToken) {
+            throw new Error('获取 session token 失败');
+        }
+        logger.info('成功获取 session token');
+
+        // 更新认证信息
+        const authSuccess = await registrationFlow.updateAuth(
+            account.email,
+            sessionToken,
+            sessionToken
+        );
+
+        if (!authSuccess) {
+            throw new Error('更新认证信息失败');
+        }
+        logger.info('认证信息更新成功');
+
+        // 注意这里不执行退出Cursor和重置机器码操作
+        logger.info('账号生成/绑定完成，不执行退出Cursor和重置机器码操作');
+
+        // 只有在整个流程都成功完成后，才将账号添加到数据库
+        const newRecord = {
+            ...account,
+            status: AccountDataHandler.AccountStatus.VERIFIED,
+            verificationCode,
+            cookie: sessionCookie,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        
+        // 检查邮箱是否已存在
+        const existingRecords = await accountDataHandler.readRecords();
+        const existingRecord = existingRecords.find(r => r.email === account.email);
+        
+        if (existingRecord) {
+            logger.info('邮箱已存在于数据库中，更新现有记录');
+            await accountDataHandler.updateRecord(account.email, newRecord);
+        } else {
+            await accountDataHandler.appendRecord(newRecord);
+        }
+        logger.info('账号信息已保存到数据库');
+
+        res.json({
+            success: true,
+            message: '账号生成/绑定完成',
+            account: { ...account, verificationCode }
+        });
+
+    } catch (error) {
+        logger.error('账号生成/绑定失败:', error);
+        res.status(500).json({
+            success: false,
+            error: '账号生成/绑定失败',
+            message: error.message
+        });
+    } finally {
+        // 清理资源
+        if (emailHandler) {
+            await emailHandler.close();
+        }
+        if (tempMailPage) {
+            await tempMailPage.close();
+        }
+        if (page) {
+            await page.close();
+        }
+        if (browser) {
+            await browser.close();
+        }
     }
 });
 

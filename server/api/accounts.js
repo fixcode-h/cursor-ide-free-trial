@@ -54,11 +54,10 @@ router.post('/', async (req, res) => {
                     const response = await publicMailApi.addEmailRoute();
                     account = response.data;
                 } else {
-                    // 原有的账号生成和 Cloudflare 邮箱绑定流程
+                    // 直接使用账号生成器生成账号，不再使用Cloudflare路由
                     const accountGenerator = new AccountGenerator(config);
-                    const cloudflareManager = new CloudflareEmailManager(config);
                     account = await accountGenerator.generateAccount();
-                    await cloudflareManager.registerEmailAccount(account);
+                    logger.info('已生成随机邮箱账号:', account.email);
                 }
                 
                 // 添加新记录

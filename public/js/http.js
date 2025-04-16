@@ -110,6 +110,7 @@ window.API = {
     },
     register: {
         complete: () => http.post('/api/register/complete'),
+        quickGenerate: () => http.post('/api/register/quick-generate'),
         login: (data) => http.post('/api/register/login', data),
         register: (data) => http.post('/api/register/register', data),
     },

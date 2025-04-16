@@ -393,10 +393,29 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('quickGenerateAccount').addEventListener('click', async () => {
         try {
             appendToConsole('info', '开始生成/绑定账号...');
-            await createAccounts(1); // 固定生成1个账号
-            appendToConsole('success', '账号生成/绑定完成');
-            // 自动刷新账号列表
-            document.getElementById('refreshAccounts').click();
+            // 调用注册接口替代原有的createAccounts方法
+            const result = await API.register.quickGenerate();
+            
+            if (result.success) {
+                appendToConsole('success', '账号生成/绑定完成');
+                // 自动刷新账号列表
+                document.getElementById('refreshAccounts').click();
+                
+                // 如果需要手动操作，显示相关信息
+                if (result.message && result.message.includes('手动')) {
+                    if (result.account) {
+                        // 添加账号信息到控制台
+                        appendToConsole('info', '生成的账号信息：');
+                        appendToConsole('info', `邮箱: ${result.account.email}`);
+                        appendToConsole('info', `密码: ${result.account.password}`);
+                    }
+                    if (result.verificationCode) {
+                        appendToConsole('info', `验证码: ${result.verificationCode}`);
+                    }
+                }
+            } else {
+                throw new Error(result.message || '账号生成/绑定失败');
+            }
         } catch (error) {
             appendToConsole('error', `账号生成/绑定失败: ${error.message}`);
         }
