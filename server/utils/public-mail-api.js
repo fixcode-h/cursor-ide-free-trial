@@ -10,7 +10,6 @@ class PublicMailApi {
         this.config = getConfig();
         this.baseURL = this.config.email.publicApi.apiEndpoint;
         this.proxyConfig = this.config.proxy;
-        this.emailProxyConfig = this.config.email.proxy;
     }
 
     // 获取请求配置
@@ -23,7 +22,7 @@ class PublicMailApi {
         };
 
         // 如果启用了代理，添加代理配置
-        if (this.proxyConfig.enabled && this.emailProxyConfig) {
+        if (this.proxyConfig.enabled) {
             const { protocol, host, port } = this.proxyConfig;
             const proxyUrl = `${protocol}://${host}:${port}`;
 

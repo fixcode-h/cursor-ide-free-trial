@@ -12,7 +12,6 @@ class CloudflareEmailManager {
         this.zoneId = config.cloudflare.zoneId;
         this.destinationAddress = config.cloudflare.emailForward;
         this.proxyConfig = config.proxy;
-        this.cloudflareProxyConfig = config.cloudflare.proxy;
         
         // 创建基础请求配置
         const axiosConfig = {
@@ -24,7 +23,7 @@ class CloudflareEmailManager {
         };
 
         // 如果启用了代理，添加代理配置
-        if (this.proxyConfig.enabled && this.cloudflareProxyConfig) {
+        if (this.proxyConfig.enabled) {
             const { protocol, host, port } = this.proxyConfig;
             const proxyUrl = `${protocol}://${host}:${port}`;
 

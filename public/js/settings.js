@@ -13,6 +13,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const imapSettings = document.getElementById('imapSettings');
     const emailProxySettings = document.getElementById('emailProxySettings');
     const cloudflareSettings = document.getElementById('cloudflareSettings');
+    // 获取代理设置DOM元素
+    const proxyEnabled = document.getElementById('proxyEnabled');
+    const proxySettings = document.getElementById('proxySettings');
 
     // 加载版本信息
     loadVersionInfo();
@@ -64,8 +67,7 @@ document.addEventListener('DOMContentLoaded', function() {
         smtpSettingsEnabled.style.display = 'none';
         imapSettingsEnabled.style.display = 'none';
 
-        // 代理设置始终显示
-        emailProxySettings.style.display = 'block';
+        // Cloudflare设置根据邮箱类型显示/隐藏
         cloudflareSettings.style.display = 'block';
 
         // 根据选择显示相应设置
@@ -98,6 +100,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // IMAP启用/禁用处理
     imapEnabled.addEventListener('change', function() {
         imapSettings.style.display = this.checked ? 'block' : 'none';
+    });
+
+    // 处理代理启用/禁用
+    proxyEnabled.addEventListener('change', function() {
+        proxySettings.style.display = this.checked ? 'block' : 'none';
     });
 
     // 处理Chrome可执行文件路径选择
@@ -217,6 +224,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 emailType.dispatchEvent(new Event('change'));
                 smtpEnabled.dispatchEvent(new Event('change'));
                 imapEnabled.dispatchEvent(new Event('change'));
+                proxyEnabled.dispatchEvent(new Event('change')); // 触发代理设置显示/隐藏
 
                 appendToConsole('success', '配置已加载');
             } else {

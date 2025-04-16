@@ -18,14 +18,12 @@ const defaultConfig = {
         protocol: 'socks5' // 可选: http, https, socks5
     },
     cloudflare: {
-        proxy: false,
         apiToken: '',
         zoneId: '',
         emailForward: '',
         virtualDomain: '',
     },
     email: {
-        proxy: false,
         type: 'publicApi', // 可选: 'tempmail', 'imap', 'publicApi'
         user: '',
         pass: '',
@@ -73,7 +71,6 @@ const defaultConfig = {
         manual: false,  // 是否启用手动注册模式
     },
     browser: {
-        proxy: false,
         headless: false, // 是否启用无头模式
         checkFingerprint: false, // 是否检查浏览器指纹
         executablePath: '', // Chrome可执行文件的路径

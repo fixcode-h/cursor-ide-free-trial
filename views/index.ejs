@@ -384,24 +384,26 @@
                                                         <div class="form-text text-muted">开启后将通过代理服务器访问网络，可以避免IP限制</div>
                                                     </div>
                                                 </div>
-                                                <div class="mb-3">
-                                                    <label for="proxyHost" class="form-label">代理主机</label>
-                                                    <input type="text" class="form-control" id="proxyHost" name="proxy.host">
-                                                    <div class="form-text text-muted">代理服务器的IP地址或域名</div>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="proxyPort" class="form-label">代理端口</label>
-                                                    <input type="number" class="form-control" id="proxyPort" name="proxy.port">
-                                                    <div class="form-text text-muted">代理服务器的端口号</div>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="proxyProtocol" class="form-label">代理协议</label>
-                                                    <select class="form-select" id="proxyProtocol" name="proxy.protocol">
-                                                        <option value="socks5">SOCKS5</option>
-                                                        <option value="http">HTTP</option>
-                                                        <option value="https">HTTPS</option>
-                                                    </select>
-                                                    <div class="form-text text-muted">代理服务器支持的协议类型，建议使用SOCKS5</div>
+                                                <div id="proxySettings" style="display: none;">
+                                                    <div class="mb-3">
+                                                        <label for="proxyHost" class="form-label">代理主机</label>
+                                                        <input type="text" class="form-control" id="proxyHost" name="proxy.host">
+                                                        <div class="form-text text-muted">代理服务器的IP地址或域名</div>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="proxyPort" class="form-label">代理端口</label>
+                                                        <input type="number" class="form-control" id="proxyPort" name="proxy.port">
+                                                        <div class="form-text text-muted">代理服务器的端口号</div>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="proxyProtocol" class="form-label">代理协议</label>
+                                                        <select class="form-select" id="proxyProtocol" name="proxy.protocol">
+                                                            <option value="socks5">SOCKS5</option>
+                                                            <option value="http">HTTP</option>
+                                                            <option value="https">HTTPS</option>
+                                                        </select>
+                                                        <div class="form-text text-muted">代理服务器支持的协议类型，建议使用SOCKS5</div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -410,13 +412,6 @@
                                         <div class="card mb-3">
                                             <div class="card-header">邮箱设置</div>
                                             <div class="card-body">
-                                                <div class="mb-3" id="emailProxySettings">
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" id="emailProxy" name="email.proxy">
-                                                        <label class="form-check-label" for="emailProxy">启用代理</label>
-                                                        <div class="form-text text-muted">是否对邮件服务请求使用代理</div>
-                                                    </div>
-                                                </div>
                                                 <div class="mb-3">
                                                     <label for="emailType" class="form-label">邮箱类型</label>
                                                     <select class="form-select" id="emailType" name="email.type">
@@ -549,13 +544,6 @@
                                             <div class="card-header">Cloudflare设置</div>
                                             <div class="card-body">
                                                 <div class="mb-3">
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" id="cloudflareProxy" name="cloudflare.proxy">
-                                                        <label class="form-check-label" for="cloudflareProxy">启用代理</label>
-                                                        <div class="form-text text-muted">是否对 Cloudflare API 请求使用代理</div>
-                                                    </div>
-                                                </div>
-                                                <div class="mb-3">
                                                     <label for="cloudflareApiToken" class="form-label">API Token</label>
                                                     <input type="password" class="form-control" id="cloudflareApiToken" name="cloudflare.apiToken">
                                                     <div class="form-text text-muted">Cloudflare API令牌，用于管理邮件转发规则</div>
@@ -636,13 +624,6 @@
                                         <div class="card mb-3">
                                             <div class="card-header">浏览器设置</div>
                                             <div class="card-body">
-                                                <div class="mb-3">
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" id="browserProxy" name="browser.proxy">
-                                                        <label class="form-check-label" for="browserProxy">启用代理</label>
-                                                        <div class="form-text text-muted">是否对浏览器请求使用代理</div>
-                                                    </div>
-                                                </div>
                                                 <div class="mb-3">
                                                     <div class="form-check">
                                                         <input class="form-check-input" type="checkbox" id="browserHeadless" name="browser.headless">

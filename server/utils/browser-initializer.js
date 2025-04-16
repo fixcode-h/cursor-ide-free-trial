@@ -73,7 +73,7 @@ class BrowserInitializer {
                 }
 
                 // 添加代理配置
-                if (this.config.proxy.enabled && this.config.browser.proxy) {
+                if (this.config.proxy.enabled) {
                     let proxyUrl = `${this.config.proxy.protocol}://${this.config.proxy.host}:${this.config.proxy.port}`;
                     
                     if (this.config.proxy.username && this.config.proxy.password) {
