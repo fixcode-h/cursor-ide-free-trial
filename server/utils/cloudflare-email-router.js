@@ -10,7 +10,7 @@ class CloudflareEmailManager {
         this.config = config;
         this.apiToken = config.cloudflare.apiToken;
         this.zoneId = config.cloudflare.zoneId;
-        this.destinationAddress = config.cloudflare.emailForward;
+        this.destinationAddress = config.email.user;
         this.proxyConfig = config.proxy;
         
         // 创建基础请求配置
@@ -50,7 +50,7 @@ class CloudflareEmailManager {
         this.config = config;
         this.apiToken = config.cloudflare.apiToken;
         this.zoneId = config.cloudflare.zoneId;
-        this.destinationAddress = config.cloudflare.emailForward;
+        this.destinationAddress = config.email.user;
         this.proxyConfig = config.proxy;
 
         // 更新 axios 实例配置

@@ -16,6 +16,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // 获取代理设置DOM元素
     const proxyEnabled = document.getElementById('proxyEnabled');
     const proxySettings = document.getElementById('proxySettings');
+    // 获取人类行为模拟设置DOM元素
+    const humanBehaviorEnabled = document.getElementById('humanBehaviorEnabled');
+    const humanBehaviorSettings = document.getElementById('humanBehaviorSettings');
 
     // 加载版本信息
     loadVersionInfo();
@@ -55,6 +58,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 重置按钮处理
     resetButton.addEventListener('click', loadConfig);
+
+    // 处理人类行为模拟启用/禁用
+    humanBehaviorEnabled.addEventListener('change', function() {
+        humanBehaviorSettings.style.display = this.checked ? 'block' : 'none';
+    });
 
     // 邮箱类型切换处理
     emailType.addEventListener('change', function() {
@@ -225,6 +233,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 smtpEnabled.dispatchEvent(new Event('change'));
                 imapEnabled.dispatchEvent(new Event('change'));
                 proxyEnabled.dispatchEvent(new Event('change')); // 触发代理设置显示/隐藏
+                humanBehaviorEnabled.dispatchEvent(new Event('change')); // 触发人类行为模拟设置显示/隐藏
 
                 appendToConsole('success', '配置已加载');
             } else {

@@ -535,6 +535,11 @@
                                                             <div class="form-text text-muted">是否使用SSL/TLS加密连接，建议启用</div>
                                                         </div>
                                                     </div>
+                                                    <div class="mb-3">
+                                                        <label for="imapVirtualDomain" class="form-label">虚拟域名</label>
+                                                        <input type="text" class="form-control" id="imapVirtualDomain" name="email.imap.virtualDomain">
+                                                        <div class="form-text text-muted">用于生成临时邮箱的域名后缀，如@example.com</div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -552,16 +557,6 @@
                                                     <label for="cloudflareZoneId" class="form-label">Zone ID</label>
                                                     <input type="text" class="form-control" id="cloudflareZoneId" name="cloudflare.zoneId">
                                                     <div class="form-text text-muted">Cloudflare域名的Zone ID，可在域名概述页面找到</div>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="cloudflareEmailForward" class="form-label">转发邮箱</label>
-                                                    <input type="email" class="form-control" id="cloudflareEmailForward" name="cloudflare.emailForward">
-                                                    <div class="form-text text-muted">接收所有邮件转发的目标邮箱地址</div>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="cloudflareVirtualDomain" class="form-label">虚拟域名</label>
-                                                    <input type="text" class="form-control" id="cloudflareVirtualDomain" name="cloudflare.virtualDomain">
-                                                    <div class="form-text text-muted">用于生成临时邮箱的域名后缀，如@example.com</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -663,6 +658,39 @@
                                                     </div>
                                                     <div class="form-text text-muted">Chrome浏览器的可执行文件路径，留空则使用系统默认Chrome</div>
                                                 </div>
+                                                
+                                                <!-- 人类行为模拟设置 -->
+                                                <div class="mb-3">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="humanBehaviorEnabled" name="browser.human_behavior.enabled">
+                                                        <label class="form-check-label" for="humanBehaviorEnabled">启用人类行为模拟</label>
+                                                        <div class="form-text text-muted">启用后将模拟人类行为填写表单、点击按钮等，降低被检测为机器人的风险</div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- 人类行为模拟详细设置 -->
+                                                <div id="humanBehaviorSettings" style="display: none;">
+                                                    <div class="mb-3">
+                                                        <label for="typingSpeedMin" class="form-label">最小打字延迟 (毫秒)</label>
+                                                        <input type="number" class="form-control" id="typingSpeedMin" name="browser.human_behavior.typingSpeed.min" min="10" max="200">
+                                                        <div class="form-text text-muted">模拟人工输入时每个字符之间的最小延迟时间</div>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="typingSpeedMax" class="form-label">最大打字延迟 (毫秒)</label>
+                                                        <input type="number" class="form-control" id="typingSpeedMax" name="browser.human_behavior.typingSpeed.max" min="50" max="500">
+                                                        <div class="form-text text-muted">模拟人工输入时每个字符之间的最大延迟时间</div>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="movementDelayMin" class="form-label">最小动作延迟 (毫秒)</label>
+                                                        <input type="number" class="form-control" id="movementDelayMin" name="browser.human_behavior.movementDelay.min" min="100" max="1000">
+                                                        <div class="form-text text-muted">模拟人类行为时动作之间的最小延迟时间</div>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="movementDelayMax" class="form-label">最大动作延迟 (毫秒)</label>
+                                                        <input type="number" class="form-control" id="movementDelayMax" name="browser.human_behavior.movementDelay.max" min="500" max="3000">
+                                                        <div class="form-text text-muted">模拟人类行为时动作之间的最大延迟时间</div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -678,40 +706,6 @@
                                                         <button class="btn btn-outline-secondary" type="button" id="resetCursorPathBtn">恢复默认</button>
                                                     </div>
                                                     <div class="form-text text-muted">Cursor IDE的可执行文件路径，留空则使用系统默认路径</div>
-                                                </div>
-                                                
-                                                <!-- 人类行为模拟设置 -->
-                                                <div class="card mb-3">
-                                                    <div class="card-header">人类行为模拟</div>
-                                                    <div class="card-body">
-                                                        <div class="mb-3">
-                                                            <div class="form-check">
-                                                                <input class="form-check-input" type="checkbox" id="humanBehaviorEnabled" name="human_behavior.enabled">
-                                                                <label class="form-check-label" for="humanBehaviorEnabled">启用人类行为模拟</label>
-                                                                <div class="form-text text-muted">启用后将模拟人类行为填写表单、点击按钮等，降低被检测为机器人的风险</div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="mb-3">
-                                                            <label for="typingSpeedMin" class="form-label">最小打字延迟 (毫秒)</label>
-                                                            <input type="number" class="form-control" id="typingSpeedMin" name="human_behavior.typingSpeed.min" min="10" max="200">
-                                                            <div class="form-text text-muted">模拟人工输入时每个字符之间的最小延迟时间</div>
-                                                        </div>
-                                                        <div class="mb-3">
-                                                            <label for="typingSpeedMax" class="form-label">最大打字延迟 (毫秒)</label>
-                                                            <input type="number" class="form-control" id="typingSpeedMax" name="human_behavior.typingSpeed.max" min="50" max="500">
-                                                            <div class="form-text text-muted">模拟人工输入时每个字符之间的最大延迟时间</div>
-                                                        </div>
-                                                        <div class="mb-3">
-                                                            <label for="movementDelayMin" class="form-label">最小动作延迟 (毫秒)</label>
-                                                            <input type="number" class="form-control" id="movementDelayMin" name="human_behavior.movementDelay.min" min="100" max="1000">
-                                                            <div class="form-text text-muted">模拟人类行为时动作之间的最小延迟时间</div>
-                                                        </div>
-                                                        <div class="mb-3">
-                                                            <label for="movementDelayMax" class="form-label">最大动作延迟 (毫秒)</label>
-                                                            <input type="number" class="form-control" id="movementDelayMax" name="human_behavior.movementDelay.max" min="500" max="3000">
-                                                            <div class="form-text text-muted">模拟人类行为时动作之间的最大延迟时间</div>
-                                                        </div>
-                                                    </div>
                                                 </div>
                                             </div>
                                         </div>

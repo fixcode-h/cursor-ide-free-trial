@@ -20,8 +20,6 @@ const defaultConfig = {
     cloudflare: {
         apiToken: '',
         zoneId: '',
-        emailForward: '',
-        virtualDomain: '',
     },
     email: {
         type: 'publicApi', // 可选: 'tempmail', 'imap', 'publicApi'
@@ -57,7 +55,8 @@ const defaultConfig = {
             enabled: true, // 默认连接
             host: 'imap.gmail.com',
             port: 993,
-            secure: true
+            secure: true,
+            virtualDomain: '' // 用于生成临时邮箱的域名后缀，从cloudflare移动过来
         }
     },
     logging: {
@@ -76,20 +75,20 @@ const defaultConfig = {
         executablePath: '', // Chrome可执行文件的路径
         fingerprintRandom: false, // 是否随机指纹浏览器种子
         fingerprintSeed: '', // 固定指纹浏览器种子
+        human_behavior: {
+            enabled: true, // 是否启用人类行为模拟
+            typingSpeed: {
+                min: 50, // 最小打字延迟（毫秒）
+                max: 200 // 最大打字延迟（毫秒）
+            },
+            movementDelay: {
+                min: 500, // 最小移动延迟（毫秒）
+                max: 2000 // 最大移动延迟（毫秒）
+            }
+        }
     },
     cursor: {
         executablePath: '', // Cursor可执行文件的路径，根据不同平台有不同默认路径
-    },
-    human_behavior: {
-        enabled: true, // 是否启用人类行为模拟
-        typingSpeed: {
-            min: 50, // 最小打字延迟（毫秒）
-            max: 200 // 最大打字延迟（毫秒）
-        },
-        movementDelay: {
-            min: 500, // 最小移动延迟（毫秒）
-            max: 2000 // 最大移动延迟（毫秒）
-        }
     }
 };
 
