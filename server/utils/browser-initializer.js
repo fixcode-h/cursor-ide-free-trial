@@ -25,11 +25,8 @@ function getExtensionsDir() {
 const BROWSER_CONFIG = {
     MAX_RETRIES: 3,
     RETRY_DELAY: 5000, // 5 seconds
-    MIN_TRUST_SCORE: 5,  // 降低信任分数要求
-    MAX_HEADLESS_PERCENTAGE: {
-        HEADLESS: 95,    // headless模式下允许更高的百分比
-        NORMAL: 30       // 正常模式下保持原有要求
-    }
+    MIN_TRUST_SCORE: 10,
+    MAX_HEADLESS_PERCENTAGE: 30
 };
 
 class BrowserInitializer {
@@ -43,13 +40,6 @@ class BrowserInitializer {
         while (this.retryCount < BROWSER_CONFIG.MAX_RETRIES) {
             try {
                 logger.info(`尝试初始化浏览器 (第 ${this.retryCount + 1} 次尝试)...`);
-                
-                // 根据是否是headless模式决定是否跳过指纹检查
-                if (this.config.browser.headless) {
-                    logger.info('检测到headless模式，调整检测参数...');
-                    // 在headless模式下，可以选择跳过指纹检查
-                    this.config.browser.checkFingerprint = false;
-                }
                 
                 // 构建插件路径
                 const extensionPath = path.join(
@@ -65,13 +55,7 @@ class BrowserInitializer {
                     args: [
                         "--no-sandbox",
                         "--disable-blink-features=AutomationControlled",
-                        "--disable-features=IsolateOrigins,site-per-process",
-                        "--disable-audio-output",
-                        // 加强反检测能力的参数
-                        "--disable-web-security",
-                        "--disable-infobars",
-                        "--window-size=1920,1080",
-                        "--start-maximized"
+                        "--disable-audio-output"
                     ],
                     customConfig: {},
                     turnstile: true,
@@ -82,14 +66,6 @@ class BrowserInitializer {
                     ignoreAllFlags: false
                 };
 
-                // 如果是headless模式，使用新版headless
-                if (this.config.browser.headless) {
-                    // 从参数中移除旧的headless配置
-                    connectOptions.headless = false;
-                    // 添加新版headless参数
-                    connectOptions.args.push("--headless=new");
-                }
-
                 // 添加Chrome路径配置
                 if (this.config.browser.executablePath && this.config.browser.executablePath !== '') {
                     connectOptions.customConfig.chromePath = this.config.browser.executablePath;
@@ -97,7 +73,7 @@ class BrowserInitializer {
                 }
 
                 // 添加代理配置
-                if (this.config.proxy && this.config.proxy.enabled) {
+                if (this.config.proxy.enabled) {
                     let proxyUrl = `${this.config.proxy.protocol}://${this.config.proxy.host}:${this.config.proxy.port}`;
                     
                     if (this.config.proxy.username && this.config.proxy.password) {
@@ -126,40 +102,14 @@ class BrowserInitializer {
                     logger.info(`指纹参数配置完成: ${configSeed ? '使用固定种子' : '使用随机种子'}`);
                 }
                 
-                // 设置额外的用户代理参数，减少浏览器指纹
-                if (!connectOptions.customConfig.userAgent) {
-                    const userAgents = [
-                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
-                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
-                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
-                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
-                    ];
-                    
-                    const randomUserAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
-                    connectOptions.args.push(`--user-agent=${randomUserAgent}`);
-                    logger.info(`已设置随机用户代理: ${randomUserAgent}`);
-                }
-                
                 logger.info('正在启动浏览器...');
                 const { browser, page } = await connect(connectOptions);
-                
-                // 模拟正常用户行为，增加随机滚动，移动鼠标等
-                await this.emulateHumanBehavior(page);
-                
-                // 设置用户行为参数
-                await this.setupBrowserEnvironment(browser);
                 
                 // 根据配置决定是否进行指纹检查
                 if (this.config.browser.checkFingerprint) {
                     logger.info('开始进行浏览器指纹检查...');
                     const fingerprintPage = await browser.newPage();
-                    
-                    // 在headless模式下，调整指纹检查的参数
-                    const maxHeadlessPercentage = this.config.browser.headless 
-                        ? BROWSER_CONFIG.MAX_HEADLESS_PERCENTAGE.HEADLESS
-                        : BROWSER_CONFIG.MAX_HEADLESS_PERCENTAGE.NORMAL;
-                    
-                    const fingerprintCheck = await this.checkFingerprint(fingerprintPage, maxHeadlessPercentage);
+                    const fingerprintCheck = await this.checkFingerprint(fingerprintPage);
                     await fingerprintPage.close();
 
                     // 如果指纹检查不通过，关闭浏览器并重试
@@ -181,13 +131,6 @@ class BrowserInitializer {
                     logger.info('已跳过浏览器指纹检查');
                 }
 
-                // 配置扩展插件
-                if (!this.config.browser.headless) {
-                    await this.configureExtensions(browser);
-                } else {
-                    logger.info('在headless模式下跳过扩展配置');
-                }
-
                 logger.info('浏览器启动完成');
                 this.retryCount = 0; // 重置重试计数
                 return { browser, page };
@@ -206,75 +149,6 @@ class BrowserInitializer {
         }
     }
 
-    // 模拟正常用户行为
-    async emulateHumanBehavior(page) {
-        try {
-            // 设置随机的时区
-            const timezones = [
-                'Asia/Shanghai', 
-                'America/New_York', 
-                'Europe/London', 
-                'Asia/Tokyo', 
-                'Europe/Berlin'
-            ];
-            const randomTimezone = timezones[Math.floor(Math.random() * timezones.length)];
-            
-            await page.emulateTimezone(randomTimezone);
-            logger.info(`设置随机时区: ${randomTimezone}`);
-            
-            // 设置语言
-            const languages = ['en-US', 'zh-CN'];
-            const randomLanguage = languages[Math.floor(Math.random() * languages.length)];
-            
-            await page.setExtraHTTPHeaders({
-                'Accept-Language': randomLanguage
-            });
-            logger.info(`设置随机语言: ${randomLanguage}`);
-            
-            // 其他人类行为特征可以在这里添加
-        } catch (error) {
-            logger.warn('模拟人类行为时出错:', error.message);
-        }
-    }
-    
-    // 设置浏览器环境
-    async setupBrowserEnvironment(browser) {
-        try {
-            // 可以为所有页面添加全局脚本，覆盖某些特征检测函数
-            browser.on('targetcreated', async (target) => {
-                if (target.type() === 'page') {
-                    const page = await target.page();
-                    if (page) {
-                        // 重写WebDriver属性
-                        await page.evaluateOnNewDocument(() => {
-                            // 覆盖navigator.webdriver
-                            Object.defineProperty(navigator, 'webdriver', {
-                                get: () => false
-                            });
-                            
-                            // 覆盖navigator.plugins
-                            if (navigator.plugins.length === 0) {
-                                Object.defineProperty(navigator, 'plugins', {
-                                    get: () => {
-                                        const plugins = [1, 2, 3, 4, 5];
-                                        plugins.refresh = () => {};
-                                        plugins.namedItem = () => null;
-                                        plugins.item = () => null;
-                                        return plugins;
-                                    }
-                                });
-                            }
-                            
-                            // 添加更多反检测代码
-                        });
-                    }
-                }
-            });
-        } catch (error) {
-            logger.warn('设置浏览器环境时出错:', error.message);
-        }
-    }
-
     async initInternalBrowser() {
         try {            
             logger.info('配置内部浏览器启动选项...');
@@ -284,29 +158,16 @@ class BrowserInitializer {
                 headless: this.config.browser.headless,
                 args: [
                     "--no-sandbox",
-                    "--disable-blink-features=AutomationControlled",
-                    "--disable-features=IsolateOrigins,site-per-process"
                 ],
                 connectOption: {},
                 disableXvfb: false,
                 ignoreAllFlags: false
             };
             
-            // 如果是headless模式，使用新版headless
-            if (this.config.browser.headless) {
-                // 从参数中移除旧的headless配置
-                connectOptions.headless = false;
-                // 添加新版headless参数
-                connectOptions.args.push("--headless=new");
-            }
-            
             logger.info('正在启动内部浏览器...');
 
             try {
                 const { browser, page } = await connect(connectOptions);
-                
-                // 模拟人类行为
-                await this.emulateHumanBehavior(page);
                 
                 logger.info('内部浏览器启动完成');
                 return { browser, page };
@@ -320,7 +181,7 @@ class BrowserInitializer {
         }
     }
 
-    async checkFingerprint(page, maxHeadlessPercentage = BROWSER_CONFIG.MAX_HEADLESS_PERCENTAGE.NORMAL) {
+    async checkFingerprint(page) {
         const fingerprintTestSites = [
             {
                 url: 'https://bot.sannysoft.com',
@@ -540,11 +401,10 @@ class BrowserInitializer {
                         };
                     }
 
-                    // 使用传入的maxHeadlessPercentage参数
-                    if (headlessPercentage !== null && headlessPercentage > maxHeadlessPercentage) {
+                    if (headlessPercentage !== null && headlessPercentage > BROWSER_CONFIG.MAX_HEADLESS_PERCENTAGE) {
                         return {
                             success: false,
-                            reason: `Headless检测值过高: ${headlessPercentage}% (最大允许: ${maxHeadlessPercentage}%)`
+                            reason: `Headless检测值过高: ${headlessPercentage}% (最大允许: ${BROWSER_CONFIG.MAX_HEADLESS_PERCENTAGE}%)`
                         };
                     }
 
@@ -581,22 +441,14 @@ class BrowserInitializer {
         for (const site of fingerprintTestSites) {
             try {
                 logger.info(`正在使用 ${site.url} 检查浏览器指纹...`);
-                
-                // 随机设置用户代理
-                await this.setRandomUserAgent(page);
-                
                 await page.goto(site.url, {
                     waitUntil: 'networkidle0',
                     timeout: 30000
                 });
 
-                // 添加随机滚动行为，更类似于真实用户
-                await this.humanBehavior.performRandomScroll(page);
-
                 const result = await site.evaluator();
-                if (!result || !result.success) {
-                    if (result) return result;
-                    return { success: false, reason: '无法完成指纹检查' };
+                if (!result.success) {
+                    return result;
                 }
             } catch (error) {
                 logger.warn(`访问 ${site.url} 失败:`, error.message);
@@ -605,52 +457,6 @@ class BrowserInitializer {
         }
         
         return { success: true };
-    }
-    
-    // 设置随机用户代理
-    async setRandomUserAgent(page) {
-        try {
-            const userAgents = [
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
-            ];
-            
-            const randomUserAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
-            await page.setUserAgent(randomUserAgent);
-            
-            // 覆盖浏览器WebDriver属性
-            await page.evaluateOnNewDocument(() => {
-                Object.defineProperty(navigator, 'webdriver', {
-                    get: () => false
-                });
-                
-                // 覆盖 chrome
-                if (window.chrome) {
-                    window.chrome.runtime = {};
-                }
-                
-                // 覆盖语言
-                const overrideLanguages = ['en-US', 'en-GB', 'zh-CN', 'zh-TW', 'ja-JP'];
-                const origLanguages = window.navigator.languages;
-                Object.defineProperty(navigator, 'languages', {
-                    get: () => overrideLanguages
-                });
-                
-                // 添加缺失的函数来模拟真实浏览器
-                if (!window.Notification) {
-                    window.Notification = {
-                        permission: 'denied'
-                    };
-                }
-            });
-            
-            logger.info(`设置随机用户代理成功: ${randomUserAgent}`);
-        } catch (error) {
-            logger.warn('设置随机用户代理失败:', error.message);
-        }
     }
 
     /**
@@ -854,4 +660,4 @@ class BrowserInitializer {
     }
 }
 
-module.exports = BrowserInitializer;
+module.exports = BrowserInitializer; 
