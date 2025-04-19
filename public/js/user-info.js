@@ -88,25 +88,6 @@ async function updateLicenseInfo() {
                     </div>
                 </div>
             </div>
-            <div class="card mb-3">
-                <div class="card-header">授权信息</div>
-                <div class="card-body">
-                    <div class="list-group">
-                        <div class="list-group-item bg-dark-subtle border-dark text-light d-flex justify-content-between align-items-center" style="background-color: #1a1a1a !important; border-color: #404040;">
-                            <span class="label" style="color: #8a8a8a;">用户名</span>
-                            <span class="value" style="color: #ffffff;">${userInfo?.username || '未设置'}</span>
-                        </div>
-                        <div class="list-group-item bg-dark-subtle border-dark text-light d-flex justify-content-between align-items-center" style="background-color: #1a1a1a !important; border-color: #404040;">
-                            <span class="label" style="color: #8a8a8a;">过期时间</span>
-                            <span class="value" style="color: #ffffff;">${userInfo?.expireTime ? new Date(userInfo.expireTime).toLocaleString() : '未设置'}</span>
-                        </div>
-                        <div class="list-group-item bg-dark-subtle border-dark text-light d-flex justify-content-between align-items-center" style="background-color: #1a1a1a !important; border-color: #404040;">
-                            <span class="label" style="color: #8a8a8a;">剩余可创建账号</span>
-                            <span class="value" style="color: #ffffff;">${userInfo ? userInfo.remainingAccounts : '未知'}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
             <div class="card">
                 <div class="card-header">最近创建的账号</div>
                 <div class="card-body">
@@ -155,16 +136,6 @@ async function updateLicenseInfo() {
                                 <button class="btn btn-outline-secondary" type="button" onclick="copyMachineCode()">
                                     <i class="bi bi-clipboard"></i> 复制
                                 </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-body">
-                        <div class="list-group">
-                            <div class="list-group-item bg-dark-subtle border-dark text-light d-flex justify-content-between align-items-center" style="background-color: #1a1a1a !important; border-color: #404040;">
-                                <span class="label" style="color: #8a8a8a;">剩余可创建账号</span>
-                                <span class="value" style="color: #ffffff;">未知</span>
                             </div>
                         </div>
                     </div>
