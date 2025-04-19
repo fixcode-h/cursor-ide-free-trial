@@ -22,7 +22,7 @@ const defaultConfig = {
         zoneId: '',
     },
     email: {
-        type: 'publicApi', // 可选: 'tempmail', 'imap', 'publicApi'
+        type: 'imap', // 可选: 'tempmail', 'imap'
         user: '',
         pass: '',
         tempmail: {
@@ -41,9 +41,6 @@ const defaultConfig = {
             username: '', // 指定的邮箱用户名
             pin: '', // pin码
             lifetime: '2days' // 可选: '10min', '60min', '2days', '7days'
-        },
-        publicApi: {
-            apiEndpoint: 'https://emailapi.goaiwork.online', // API服务地址
         },
         smtp: {
             enabled: false, // 默认不连接

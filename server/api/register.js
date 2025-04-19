@@ -11,9 +11,8 @@ const BrowserInitializer = require('../utils/browser-initializer');
 const AccountGenerator = require('../utils/account-generator');
 const Cursor = require('../flows/cursor');
 const Copilot = require('../flows/copilot');
-const PublicMailApi = require('../utils/public-mail-api');
 
-async function getVerificationCode(account, config, { browser = null, tempMailPage = null, registrationFlow = null, emailHandler = null, tempMail = null, publicMailApi = null, requestStartTime = null } = {}) {
+async function getVerificationCode(account, config, { browser = null, tempMailPage = null, registrationFlow = null, emailHandler = null, tempMail = null, requestStartTime = null } = {}) {
     logger.info('等待接收验证码邮件...');
     let verificationCode;
     let attempts = 0;
@@ -33,16 +32,7 @@ async function getVerificationCode(account, config, { browser = null, tempMailPa
         logger.info(`尝试获取验证码 (第 ${attempts}/${maxAttempts} 次)`);
 
         try {
-            if (config.email.type === 'publicApi') {
-                const response = await publicMailApi.getEmails(config.registration.type, account.email);
-                if (response.success && response.data) {
-                    verificationCode = response.data.verificationCode;
-                    logger.info('从 Public API 获取到验证码:', verificationCode);
-                } else {
-                    logger.warn('未能从 Public API 获取到验证码，将重试');
-                    verificationCode = null;
-                }
-            } else if (config.email.type === 'tempmail') {
+            if (config.email.type === 'tempmail') {
                 if (!tempMail || !browser || !tempMailPage || !registrationFlow) {
                     throw new Error('TempMail 模式下需要提供 tempMail, browser, tempMailPage 和 registrationFlow');
                 }
@@ -108,7 +98,6 @@ router.post('/complete', async (req, res) => {
     let browser = null;
     let page = null;
     let tempMailPage = null;
-    let publicMailApi = null;
     
     try {
         // 获取配置
@@ -122,10 +111,7 @@ router.post('/complete', async (req, res) => {
 
         // 根据配置初始化邮件处理器
         logger.info('初始化邮件处理器...');
-        if (config.email.type === 'publicApi') {
-            publicMailApi = new PublicMailApi();
-            logger.info('PublicMailApi 初始化完成');
-        } else if (config.email.type === 'tempmail') {
+        if (config.email.type === 'tempmail') {
             tempMail = new TempMail(config);
             const { browser: tempMailBrowser, page: tempMailPageResult } = await tempMail.initialize(browser, initialPage);
             tempMailPage = tempMailPageResult;
@@ -195,7 +181,6 @@ router.post('/complete', async (req, res) => {
             registrationFlow,
             emailHandler,
             tempMail,
-            publicMailApi,
             requestStartTime: registerStartTime
         });
 
@@ -315,7 +300,6 @@ router.post('/register', async (req, res) => {
     let emailHandler = null;
     let tempMail = null;
     let accountDataHandler = null;
-    let publicMailApi = null;
 
     try {
         const { email, firstname, lastname, username, password } = req.body;
@@ -346,10 +330,7 @@ router.post('/register', async (req, res) => {
 
         // 根据配置初始化邮件处理器
         logger.info('初始化邮件处理器...');
-        if (config.email.type === 'publicApi') {
-            publicMailApi = new PublicMailApi();
-            logger.info('PublicMailApi 初始化完成');
-        } else if (config.email.type === 'tempmail') {
+        if (config.email.type === 'tempmail') {
             tempMail = new TempMail(config);
             const { browser: tempMailBrowser, page: tempMailPageResult } = await tempMail.initialize(browser, initialPage);
             tempMailPage = tempMailPageResult;
@@ -432,7 +413,6 @@ router.post('/register', async (req, res) => {
             registrationFlow,
             emailHandler,
             tempMail,
-            publicMailApi,
             requestStartTime: registerStartTime
         });
 
@@ -621,14 +601,12 @@ router.post('/login', async (req, res) => {
 
 // 快速生成/绑定账号（不执行退出Cursor和重置机器码）
 router.post('/quick-generate', async (req, res) => {
-    let cloudflareManager = null;
     let accountDataHandler = null;
     let emailHandler = null;
     let tempMail = null;
     let browser = null;
     let page = null;
     let tempMailPage = null;
-    let publicMailApi = null;
     
     try {
         // 获取配置
@@ -642,10 +620,7 @@ router.post('/quick-generate', async (req, res) => {
 
         // 根据配置初始化邮件处理器
         logger.info('初始化邮件处理器...');
-        if (config.email.type === 'publicApi') {
-            publicMailApi = new PublicMailApi();
-            logger.info('PublicMailApi 初始化完成');
-        } else if (config.email.type === 'tempmail') {
+        if (config.email.type === 'tempmail') {
             tempMail = new TempMail(config);
             const { browser: tempMailBrowser, page: tempMailPageResult } = await tempMail.initialize(browser, initialPage);
             tempMailPage = tempMailPageResult;
@@ -715,7 +690,6 @@ router.post('/quick-generate', async (req, res) => {
             registrationFlow,
             emailHandler,
             tempMail,
-            publicMailApi,
             requestStartTime: registerStartTime
         });
 

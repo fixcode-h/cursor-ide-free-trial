@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const PublicMailApi = require('../utils/public-mail-api');
 const logger = require('../utils/logger');
 const Cursor = require('../flows/cursor');
 const AccountDataHandler = require('../utils/account-data-handler');
@@ -8,19 +7,6 @@ const AccountDataHandler = require('../utils/account-data-handler');
 // 获取用户信息
 router.get('/info', async (req, res) => {
     try {
-        let mailData = {};
-        const mailApi = new PublicMailApi();
-        try {
-            const mailResult = await mailApi.getUserInfo();
-            if (mailResult.success) {
-                mailData = mailResult.data;
-            } else {
-                logger.warn('获取邮箱信息失败:');
-            }
-        } catch (error) {
-            logger.warn('获取邮箱信息失败:');
-        }
-
         // 获取 Cursor 认证信息
         const cursor = new Cursor();
         const cursorAuth = await cursor.getAuth();
@@ -44,7 +30,6 @@ router.get('/info', async (req, res) => {
         const responseData = {
             success: true,
             data: {
-                ...mailData,
                 cursor: {
                     email: cursorAuth.email,
                     accessToken: cursorAuth.accessToken,

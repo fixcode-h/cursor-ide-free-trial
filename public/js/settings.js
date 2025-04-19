@@ -3,7 +3,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const resetButton = document.getElementById('resetSettings');
     const emailType = document.getElementById('emailType');
     const tempmailSettings = document.getElementById('tempmailSettings');
-    const publicApiSettings = document.getElementById('publicApiSettings');
     const commonEmailSettings = document.getElementById('commonEmailSettings');
     const smtpSettingsEnabled = document.getElementById('smtpSettingsEnabled');
     const smtpEnabled = document.getElementById('smtpEnabled');
@@ -71,7 +70,6 @@ document.addEventListener('DOMContentLoaded', function() {
         commonEmailSettings.style.display = 'none';
         smtpSettings.style.display = 'none';
         imapSettings.style.display = 'none';
-        publicApiSettings.style.display = 'none';
         smtpSettingsEnabled.style.display = 'none';
         imapSettingsEnabled.style.display = 'none';
 
@@ -92,10 +90,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 imapSettings.style.display = 'block';
                 smtpSettingsEnabled.style.display = 'block';
                 imapSettingsEnabled.style.display = 'block';
-                break;
-            case 'publicApi':
-                publicApiSettings.style.display = 'block';
-                cloudflareSettings.style.display = 'none';
                 break;
         }
     });

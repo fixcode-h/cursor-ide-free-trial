@@ -415,22 +415,12 @@
                                                 <div class="mb-3">
                                                     <label for="emailType" class="form-label">邮箱类型</label>
                                                     <select class="form-select" id="emailType" name="email.type">
-                                                        <option value="publicApi">公共API池</option>
                                                         <option value="imap">IMAP</option>
                                                         <option value="tempmail">TempMail</option>
                                                     </select>
-                                                    <div class="form-text text-muted">选择邮箱服务类型，IMAP用于永久邮箱，TempMail用于一次性使用，公共API池用于共享邮箱服务</div>
+                                                    <div class="form-text text-muted">选择邮箱服务类型，IMAP用于永久邮箱，TempMail用于一次性使用</div>
                                                 </div>
                                                 
-                                                <!-- 公共API池设置 -->
-                                                <div id="publicApiSettings">
-                                                    <div class="mb-3">
-                                                        <label for="publicApiEndpoint" class="form-label">API端点</label>
-                                                        <input type="text" class="form-control" id="publicApiEndpoint" name="email.publicApi.apiEndpoint">
-                                                        <div class="form-text text-muted">公共API池服务的接口地址</div>
-                                                    </div>
-                                                </div>
-
                                                 <!-- IMAP和TempMail通用设置 -->
                                                 <div id="commonEmailSettings">
                                                     <div class="mb-3">

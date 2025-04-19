@@ -8,7 +8,6 @@ const AccountGenerator = require('../utils/account-generator');
 const CloudflareEmailManager = require('../utils/cloudflare-email-router');
 const { getConfig } = require('../utils/config');
 const { broadcastMessage } = require('../utils/websocket');
-const PublicMailApi = require('../utils/public-mail-api');
 const csv = require('csv-parse/sync');
 const { stringify } = require('csv-stringify/sync');
 
@@ -47,18 +46,10 @@ router.post('/', async (req, res) => {
             try {
                 logger.info(`开始生成第 ${i + 1}/${count} 个账号...`);
                 
-                let account;
-                // 如果是 publicApi 类型，直接使用 public mail api
-                if (config.email.type === 'publicApi') {
-                    const publicMailApi = new PublicMailApi();
-                    const response = await publicMailApi.addEmailRoute();
-                    account = response.data;
-                } else {
-                    // 直接使用账号生成器生成账号，不再使用Cloudflare路由
-                    const accountGenerator = new AccountGenerator(config);
-                    account = await accountGenerator.generateAccount();
-                    logger.info('已生成随机邮箱账号:', account.email);
-                }
+                // 直接使用账号生成器生成账号
+                const accountGenerator = new AccountGenerator(config);
+                const account = await accountGenerator.generateAccount();
+                logger.info('已生成随机邮箱账号:', account.email);
                 
                 // 添加新记录
                 const newRecord = {
@@ -146,44 +137,54 @@ router.delete('/:email', async (req, res) => {
 
         // 尝试删除远程邮件路由，但即使失败也继续删除本地记录
         try {
-            // 根据邮箱类型选择不同的删除方式
-            if (config.email.type === 'publicApi') {
-                const publicMailApi = new PublicMailApi();
-                await publicMailApi.deleteEmailRoute(email);
-                logger.info('已删除 Public API 邮件路由:', email);
-            } else {
-                const cloudflareManager = new CloudflareEmailManager(config);
-                // 获取所有邮件路由规则
-                const emailRoutes = await cloudflareManager.listEmailRoutes();
-                
-                // 查找对应的路由规则
-                const routeToDelete = emailRoutes.find(route => 
-                    route.matchers.some(matcher => 
-                        matcher.type === 'literal' && 
-                        matcher.field === 'to' && 
-                        matcher.value === email
-                    )
-                );
+            const cloudflareManager = new CloudflareEmailManager(config);
+            // 获取所有邮件路由规则
+            const emailRoutes = await cloudflareManager.listEmailRoutes();
+            
+            // 查找对应的路由规则
+            const routeToDelete = emailRoutes.find(route => 
+                route.matchers.some(matcher => 
+                    matcher.type === 'literal' && 
+                    matcher.field === 'to' && 
+                    matcher.value === email
+                )
+            );
 
-                // 如果找到对应的路由规则，删除它
-                if (routeToDelete) {
-                    await cloudflareManager.removeEmailRoute(routeToDelete.id);
-                    logger.info('已删除 Cloudflare 邮件路由:', email);
-                }
+            // 如果找到对应的路由规则，删除它
+            if (routeToDelete) {
+                await cloudflareManager.removeEmailRoute(routeToDelete.id);
+                logger.info('已删除 Cloudflare 邮件路由:', email);
             }
         } catch (remoteError) {
             // 记录远程删除失败，但不中断流程
             logger.error('远程邮件路由删除失败，继续删除本地记录:', remoteError);
         }
 
-        // 无论远程删除是否成功，都删除本地记录
-        await accountDataHandler.deleteRecord(email);
-        logger.info('本地账号记录已删除:', email);
+        // 删除本地记录
+        accounts.splice(accountIndex, 1);
+        await accountDataHandler.updateRecords(accounts);
         
-        res.json({ success: true, message: '账号已删除' });
+        // 通过 WebSocket 发送删除消息
+        broadcastMessage({
+            type: 'account_deleted',
+            data: {
+                email: email
+            }
+        });
+        
+        res.json({ 
+            success: true, 
+            message: '账号已删除',
+            data: { email } 
+        });
+        
     } catch (error) {
         logger.error('删除账号失败:', error);
-        res.status(500).json({ success: false, error: '删除账号失败' });
+        res.status(500).json({ 
+            success: false, 
+            error: '删除账号失败',
+            message: error.message 
+        });
     }
 });
 
