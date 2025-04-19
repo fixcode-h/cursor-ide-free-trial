@@ -626,20 +626,42 @@ class Cursor {
                         logger.info(`找到 ${inputs.length} 个验证码输入框`);
                         
                         if (inputs.length >= code.length) {
+                            // 清除可能已有的输入
+                            for (let i = 0; i < code.length && i < inputs.length; i++) {
+                                await inputs[i].click();
+                                await inputs[i].evaluate(input => {
+                                    input.value = '';
+                                });
+                            }
+                            
                             if (this.simulateHuman) {
                                 // 模拟人类行为，逐个填写数字并增加随机延迟
                                 for (let i = 0; i < code.length && i < inputs.length; i++) {
                                     // 随机延迟
                                     await delay(300 + Math.random() * 700);
-                                    await inputs[i].type(code.charAt(i));
+                                    // 单击输入框并输入单个字符
+                                    await inputs[i].click();
+                                    await page.keyboard.type(code.charAt(i));
                                     logger.info(`已填写第 ${i + 1} 位验证码: ${code.charAt(i)}`);
+                                    // 检查是否成功输入
+                                    const value = await inputs[i].evaluate(input => input.value);
+                                    if (value !== code.charAt(i)) {
+                                        logger.warn(`第 ${i + 1} 位验证码填写可能不成功，期望 "${code.charAt(i)}"，实际为 "${value}"`);
+                                        // 重试一次
+                                        await inputs[i].click();
+                                        await page.keyboard.type(code.charAt(i));
+                                    }
                                 }
                             } else {
-                                // 直接填写所有数字
+                                // 逐个填写，而不是直接使用type方法
+                                logger.info(`开始填写6位验证码: ${code}`);
                                 for (let i = 0; i < code.length && i < inputs.length; i++) {
-                                    await inputs[i].type(code.charAt(i));
+                                    // 单击输入框并输入单个字符
+                                    await inputs[i].click();
+                                    await page.keyboard.type(code.charAt(i));
+                                    logger.info(`已填写第 ${i + 1} 位验证码: ${code.charAt(i)}`);
                                 }
-                                logger.info(`直接填写所有验证码数字: ${code}`);
+                                logger.info(`完成填写所有验证码数字`);
                             }
                             
                             // 验证是否成功填写
@@ -655,9 +677,78 @@ class Cursor {
                             
                             if (!allFilled) {
                                 logger.warn('可能未能填写所有验证码位，尝试其他方法');
+                                
+                                // 尝试更直接的方法填写
+                                await page.evaluate((code) => {
+                                    const inputs = document.querySelectorAll('input[maxlength="1"]') || 
+                                                   document.querySelectorAll('input[inputmode="numeric"][maxlength="1"]');
+                                    for (let i = 0; i < code.length && i < inputs.length; i++) {
+                                        inputs[i].value = code.charAt(i);
+                                        // 触发输入事件
+                                        const event = new Event('input', { bubbles: true });
+                                        inputs[i].dispatchEvent(event);
+                                        const changeEvent = new Event('change', { bubbles: true });
+                                        inputs[i].dispatchEvent(changeEvent);
+                                    }
+                                }, code);
+                                
+                                logger.info('使用JavaScript直接设置值并触发事件');
+                                fillSuccess = true;
                             } else {
                                 logger.info('所有验证码位已成功填写');
                                 fillSuccess = true;
+                            }
+                            
+                            // 验证码填写完成后，等待页面自动跳转或状态变化
+                            logger.info('验证码已填写完成，等待页面自动跳转...');
+                            
+                            // 等待页面反应 - 等待任何导航或内容变化
+                            try {
+                                // 等待页面加载状态变化
+                                await page.waitForFunction(() => document.readyState === 'complete', { timeout: 10000 });
+                                
+                                // 等待可能的导航
+                                await Promise.race([
+                                    page.waitForNavigation({ timeout: 10000 }).catch(() => null),
+                                    page.waitForFunction(() => {
+                                        // 检查页面是否有明显变化，比如出现了新元素或消息
+                                        const successElements = document.querySelectorAll('.success-message, .dashboard, .welcome');
+                                        return successElements.length > 0;
+                                    }, { timeout: 10000 }).catch(() => null),
+                                    delay(10000) // 最长等待10秒
+                                ]);
+                                
+                                // 检查URL是否变化
+                                const currentUrl = page.url();
+                                logger.info(`验证码填写后，当前页面URL: ${currentUrl}`);
+                                
+                                // 检查页面上是否出现了成功或错误的元素
+                                const pageState = await page.evaluate(() => {
+                                    // 检查成功指示器
+                                    const successIndicators = document.querySelectorAll('.success-message, .dashboard, .welcome');
+                                    if (successIndicators.length > 0) {
+                                        return { success: true, message: 'Found success indicators' };
+                                    }
+                                    
+                                    // 检查错误指示器
+                                    const errorIndicators = document.querySelectorAll('.error, .error-message, [role="alert"]');
+                                    for (const error of errorIndicators) {
+                                        if (error.offsetWidth > 0 && error.offsetHeight > 0) {
+                                            return { success: false, message: error.textContent.trim() };
+                                        }
+                                    }
+                                    
+                                    return { success: true, message: 'No errors detected' };
+                                });
+                                
+                                if (pageState.success) {
+                                    logger.info(`验证成功: ${pageState.message}`);
+                                } else {
+                                    logger.error(`验证失败: ${pageState.message}`);
+                                }
+                                
+                            } catch (error) {
+                                logger.info('等待页面反应时出现异常:', error.message);
                             }
                         } else {
                             logger.error(`找到 ${inputs.length} 个输入框，但需要 ${code.length} 个`);
@@ -682,6 +773,10 @@ class Cursor {
                 if (inputResult) {
                     fillSuccess = true;
                     logger.info('已填写验证码到单个输入框');
+                    
+                    // 等待页面自动跳转或状态变化
+                    logger.info('验证码已填写到单个输入框，等待页面反应...');
+                    await delay(5000); // 给页面一些时间来响应
                 } else {
                     // 尝试通过键盘输入验证码
                     logger.warn('未找到验证码输入框，尝试通过键盘输入');
@@ -689,6 +784,7 @@ class Cursor {
                         await page.keyboard.type(code);
                         logger.info('通过键盘输入了验证码');
                         fillSuccess = true;
+                        await delay(5000); // 给页面一些时间来响应
                     } catch (error) {
                         logger.error('键盘输入验证码失败:', error.message);
                         return { browser, page };
@@ -696,75 +792,7 @@ class Cursor {
                 }
             }
             
-            // 尝试找到提交按钮并点击
-            const submitSelectors = [
-                'button[type="submit"]',
-                'button:contains("Verify")',
-                'button:contains("Submit")',
-                'button:contains("Continue")',
-                'button.verification-submit-button',
-                'button[data-testid="verification-submit-button"]',
-                'button' // 通用选择器作为最后尝试
-            ];
-            
-            // 点击提交按钮
-            const submitClicked = await this.waitAndClick(page, submitSelectors, {
-                maxAttempts: 12,
-                interval: 500,
-                failMessage: '找不到验证码提交按钮'
-            });
-            
-            if (!submitClicked) {
-                // 如果未找到提交按钮，尝试按回车键提交
-                logger.info('未找到提交按钮，尝试按回车键提交');
-                await page.keyboard.press('Enter');
-            }
-            
-            // 等待页面反应 - 等待任何导航或内容变化
-            try {
-                await page.waitForNavigation({ timeout: 8000 });
-                logger.info('验证码提交后页面发生了跳转');
-            } catch (error) {
-                logger.info('验证码提交后未检测到页面跳转，等待内容变化');
-                // 等待可能的内容变化或确认消息
-                await this.waitForElement(page, [
-                    '.success-message', 
-                    '.dashboard', 
-                    '.welcome', 
-                    'div:contains("Welcome")',
-                    'div:contains("Success")'
-                ], {
-                    maxAttempts: 10,
-                    interval: 1000,
-                    visible: true,
-                    failMessage: '未找到成功提示元素'
-                });
-            }
-            
-            // 检查是否有错误信息
-            const hasError = await page.evaluate(() => {
-                const errorMessages = document.querySelectorAll('.error, .error-message, [role="alert"]');
-                for (const error of errorMessages) {
-                    if (error.offsetWidth > 0 && error.offsetHeight > 0 && 
-                        (error.textContent.toLowerCase().includes('invalid') ||
-                         error.textContent.toLowerCase().includes('error') ||
-                         error.textContent.toLowerCase().includes('wrong'))) {
-                        return true;
-                    }
-                }
-                return false;
-            });
-            
-            if (hasError) {
-                logger.error('提交验证码后检测到错误消息');
-                return { browser, page };
-            }
-            
-            // 检查页面URL变化，判断是否验证成功
-            const currentUrl = page.url();
-            logger.info(`当前页面URL: ${currentUrl}`);
-            
-            logger.info('验证码填写完成，未检测到错误');
+            logger.info('验证码填写流程完成');
             return { browser, page };
         } catch (error) {
             logger.error('填写验证码过程中出错:', error);
@@ -775,28 +803,148 @@ class Cursor {
     // 解析验证码
     extractVerificationCode(emailContent) {
         try {
-            // 查找验证码的几种模式:
-            // 1. 在 "code below" 之后的 6 位数字
-            // 2. 在邮件正文中单独出现的 6 位数字
-            // 3. 在 "code is" 之后的 6 位数字
-            const patterns = [
-                /code below[^0-9]*(\d{6})/i,
-                /\b(\d{6})\b(?=(?:[^"]*"[^"]*")*[^"]*$)/,
-                /code is[^0-9]*(\d{6})/i
-            ];
-
-            for (const pattern of patterns) {
-                const matches = emailContent.match(pattern);
-                if (matches && matches[1]) {
-                    return matches[1];
+            logger.info('开始从邮件内容中提取验证码...');
+            
+            // 打印邮件内容的一部分用于调试
+            const contentPreview = emailContent.length > 200 
+                ? emailContent.substring(0, 200) + '...' 
+                : emailContent;
+            logger.info(`邮件内容预览: ${contentPreview}`);
+            
+            // 首先检查邮件是否包含验证码相关的关键信息
+            const isCursorVerifyEmail = /Verify your email|验证您的电子邮件|输入验证码/i.test(emailContent);
+            
+            if (isCursorVerifyEmail) {
+                logger.info('检测到Cursor验证邮件');
+                
+                // 针对如图所示的Cursor验证邮件格式，直接寻找独立的6位数字
+                // 这种邮件通常有明显的6位数字验证码独立显示
+                const sixDigitPattern = /\b(\d{6})\b/g;
+                const allSixDigitMatches = [...emailContent.matchAll(sixDigitPattern)];
+                
+                if (allSixDigitMatches.length > 0) {
+                    // 如果找到了多个6位数字，优先使用正文中独立显示的那个
+                    // 以下是几种常见的验证码提取策略
+                    
+                    // 1. 尝试查找包含特定上下文的验证码
+                    const contextPatterns = [
+                        /code\s+below[^0-9]*(\d{6})/i,         // "code below" 后跟6位数字
+                        /Enter\s+the\s+code[^0-9]*(\d{6})/i,    // "Enter the code" 后跟6位数字
+                        /code\s+is[^0-9]*(\d{6})/i,            // "code is" 后跟6位数字
+                        /verification\s+code[^0-9]*(\d{6})/i,   // "verification code" 后跟6位数字
+                        /验证码[^0-9]*(\d{6})/                  // "验证码" 后跟6位数字
+                    ];
+                    
+                    for (const pattern of contextPatterns) {
+                        const match = emailContent.match(pattern);
+                        if (match && match[1]) {
+                            logger.info(`通过上下文模式找到验证码: ${match[1]}`);
+                            return match[1];
+                        }
+                    }
+                    
+                    // 2. 针对邮件中可能存在的HTML结构，尝试提取特定格式的验证码
+                    if (emailContent.includes('<html') || emailContent.includes('<body')) {
+                        // 针对一些特殊的HTML格式，比如验证码通常会放在特定的标签中
+                        const htmlPatterns = [
+                            /<div[^>]*>(\d{6})<\/div>/i,
+                            /<p[^>]*>(\d{6})<\/p>/i,
+                            /<span[^>]*>(\d{6})<\/span>/i,
+                            /<strong[^>]*>(\d{6})<\/strong>/i,
+                            /<b[^>]*>(\d{6})<\/b>/i,
+                            /<td[^>]*>(\d{6})<\/td>/i
+                        ];
+                        
+                        for (const pattern of htmlPatterns) {
+                            const match = emailContent.match(pattern);
+                            if (match && match[1]) {
+                                logger.info(`通过HTML标签模式找到验证码: ${match[1]}`);
+                                return match[1];
+                            }
+                        }
+                    }
+                    
+                    // 3. 使用图片中示例的格式，尝试提取位于空行的6位数字
+                    // 这种情况通常是验证码单独成行显示
+                    const codeLinePattern = /\n\s*(\d{6})\s*\n/;
+                    const codeLineMatch = emailContent.match(codeLinePattern);
+                    if (codeLineMatch && codeLineMatch[1]) {
+                        logger.info(`从邮件单独行中找到验证码: ${codeLineMatch[1]}`);
+                        return codeLineMatch[1];
+                    }
+                    
+                    // 4. 如果以上都未找到，则返回第一个匹配到的6位数字
+                    // 因为已经确认是验证邮件，所以大概率就是验证码
+                    const firstSixDigit = allSixDigitMatches[0][1];
+                    logger.info(`使用第一个找到的6位数字作为验证码: ${firstSixDigit}`);
+                    return firstSixDigit;
+                } else {
+                    logger.warn('未在Cursor验证邮件中找到任何6位数字');
+                }
+            } else {
+                // 一般验证码邮件检测
+                const verificationKeywords = [
+                    /verification/i, 
+                    /verify/i, 
+                    /code/i, 
+                    /authenticate/i, 
+                    /验证/i, 
+                    /确认/i
+                ];
+                
+                // 检查邮件是否是验证码邮件
+                const isVerificationEmail = verificationKeywords.some(pattern => 
+                    pattern.test(emailContent)
+                );
+                
+                if (!isVerificationEmail) {
+                    logger.info('邮件内容不包含验证相关关键词，跳过');
+                    return null;
+                }
+                
+                // 验证码提取模式，按优先级排序
+                const patterns = [
+                    /code\s+below[^0-9]*(\d{6})/i,          // "code below" 后跟6位数字
+                    /code\s+is[^0-9]*(\d{6})/i,             // "code is" 后跟6位数字
+                    /verification\s+code[^0-9]*(\d{6})/i,    // "verification code" 后跟6位数字
+                    /验证码[^0-9]*(\d{6})/,                  // "验证码" 后跟6位数字
+                    /(\d{6})[^0-9]*verification\s+code/i,    // 6位数字后跟 "verification code"
+                    /(\d{6})[^0-9]*验证码/,                  // 6位数字后跟 "验证码"
+                    /your\s+code\s+is[^0-9]*(\d{6})/i,      // "your code is" 后跟6位数字
+                    /code:[^0-9]*(\d{6})/i                  // "code:" 后跟6位数字
+                ];
+                
+                for (const pattern of patterns) {
+                    const matches = emailContent.match(pattern);
+                    if (matches && matches[1]) {
+                        const code = matches[1];
+                        logger.info(`找到匹配的验证码: ${code}, 使用模式: ${pattern}`);
+                        return code;
+                    }
+                }
+                
+                // 如果明确是验证码邮件，尝试匹配独立的6位数字
+                if (isVerificationEmail) {
+                    const match = emailContent.match(/\b(\d{6})\b/);
+                    if (match && match[1]) {
+                        logger.info(`使用独立的6位数字作为验证码: ${match[1]}`);
+                        return match[1];
+                    }
                 }
             }
 
-            // 如果上述模式都没匹配到，抛出错误
-            throw new Error('无法从邮件中提取验证码');
+            // 如果上述模式都没匹配到，尝试更模糊的匹配
+            const fuzzyMatch = emailContent.match(/(\d{6})/);
+            if (fuzzyMatch && fuzzyMatch[1]) {
+                logger.info(`使用模糊匹配找到可能的验证码: ${fuzzyMatch[1]}`);
+                return fuzzyMatch[1];
+            }
+            
+            logger.warn('无法从验证码邮件中提取验证码');
+            return null;
         } catch (error) {
             logger.error('提取验证码失败:', error);
-            throw error;
+            return null;  // 出错时返回null而不是抛出异常，让调用者决定如何处理
         }
     }
 

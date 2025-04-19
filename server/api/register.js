@@ -13,63 +13,90 @@ const Cursor = require('../flows/cursor');
 const Copilot = require('../flows/copilot');
 const PublicMailApi = require('../utils/public-mail-api');
 
-async function getVerificationCode(account, config, { browser = null, tempMailPage = null, registrationFlow = null, emailHandler = null, tempMail = null, publicMailApi = null } = {}) {
+async function getVerificationCode(account, config, { browser = null, tempMailPage = null, registrationFlow = null, emailHandler = null, tempMail = null, publicMailApi = null, requestStartTime = null } = {}) {
     logger.info('等待接收验证码邮件...');
     let verificationCode;
+    let attempts = 0;
+    const maxAttempts = 10; // 最大重试次数
+    const retryInterval = 10000; // 重试间隔，10秒
 
-    if (config.email.type === 'publicApi') {
-        const response = await publicMailApi.getEmails(config.registration.type, account.email);
-        if (response.success && response.data) {
-            verificationCode = response.data.verificationCode;
-            logger.info('从 Public API 获取到验证码:', verificationCode);
-        } else {
-            throw new Error('未能从 Public API 获取到验证码');
-        }
-    } else if (config.email.type === 'tempmail') {
-        if (!tempMail || !browser || !tempMailPage || !registrationFlow) {
-            throw new Error('TempMail 模式下需要提供 tempMail, browser, tempMailPage 和 registrationFlow');
-        }
-        verificationCode = await tempMail.waitForEmail(browser, tempMailPage, registrationFlow, account);
+    // 如果没有提供请求开始时间，使用当前时间
+    if (!requestStartTime) {
+        requestStartTime = Date.now();
+        logger.info(`未提供请求开始时间，使用当前时间: ${new Date(requestStartTime).toLocaleString()}`);
     } else {
-        if (!emailHandler || !registrationFlow) {
-            throw new Error('IMAP 模式下需要提供 emailHandler 和 registrationFlow');
-        }
-        verificationCode = await emailHandler.waitForVerificationEmail(registrationFlow, account);
+        logger.info(`使用提供的请求开始时间: ${new Date(requestStartTime).toLocaleString()}`);
     }
 
-    // 确保验证码是字符串
-    if (verificationCode) {
-        if (typeof verificationCode === 'object') {
-            logger.warn('收到的验证码是对象类型，尝试提取字符串值');
-            // 尝试从对象中提取验证码
-            if (verificationCode.verificationCode) {
-                verificationCode = verificationCode.verificationCode;
-            } else if (verificationCode.code) {
-                verificationCode = verificationCode.code;
+    while (attempts < maxAttempts) {
+        attempts++;
+        logger.info(`尝试获取验证码 (第 ${attempts}/${maxAttempts} 次)`);
+
+        try {
+            if (config.email.type === 'publicApi') {
+                const response = await publicMailApi.getEmails(config.registration.type, account.email);
+                if (response.success && response.data) {
+                    verificationCode = response.data.verificationCode;
+                    logger.info('从 Public API 获取到验证码:', verificationCode);
+                } else {
+                    logger.warn('未能从 Public API 获取到验证码，将重试');
+                    verificationCode = null;
+                }
+            } else if (config.email.type === 'tempmail') {
+                if (!tempMail || !browser || !tempMailPage || !registrationFlow) {
+                    throw new Error('TempMail 模式下需要提供 tempMail, browser, tempMailPage 和 registrationFlow');
+                }
+                verificationCode = await tempMail.waitForEmail(browser, tempMailPage, registrationFlow, account);
             } else {
-                // 尝试找到任何看起来像验证码的值
-                for (const key in verificationCode) {
-                    const value = verificationCode[key];
-                    if (typeof value === 'string' && /^\d{6}$/.test(value)) {
-                        verificationCode = value;
-                        break;
+                if (!emailHandler || !registrationFlow) {
+                    throw new Error('IMAP 模式下需要提供 emailHandler 和 registrationFlow');
+                }
+                // 调用时传入请求开始时间
+                verificationCode = await emailHandler.waitForVerificationEmail(registrationFlow, account, 300000, 5000, requestStartTime);
+            }
+
+            // 确保验证码是字符串
+            if (verificationCode) {
+                if (typeof verificationCode === 'object') {
+                    logger.warn('收到的验证码是对象类型，尝试提取字符串值');
+                    // 尝试从对象中提取验证码
+                    if (verificationCode.verificationCode) {
+                        verificationCode = verificationCode.verificationCode;
+                    } else if (verificationCode.code) {
+                        verificationCode = verificationCode.code;
+                    } else {
+                        // 尝试找到任何看起来像验证码的值
+                        for (const key in verificationCode) {
+                            const value = verificationCode[key];
+                            if (typeof value === 'string' && /^\d{6}$/.test(value)) {
+                                verificationCode = value;
+                                break;
+                            }
+                        }
                     }
                 }
+
+                // 最终验证
+                if (typeof verificationCode !== 'string') {
+                    verificationCode = String(verificationCode);
+                    logger.warn(`转换后的验证码类型: ${typeof verificationCode}`);
+                }
+
+                logger.info(`收到验证码: ${verificationCode}`);
+                return verificationCode;
+            } else {
+                logger.warn('获取验证码失败，将重试');
             }
+        } catch (error) {
+            logger.error(`获取验证码失败，重试 ${attempts}/${maxAttempts}:`, error);
+            verificationCode = null;
         }
 
-        // 最终验证
-        if (typeof verificationCode !== 'string') {
-            verificationCode = String(verificationCode);
-            logger.warn(`转换后的验证码类型: ${typeof verificationCode}`);
-        }
-
-        logger.info(`收到验证码: ${verificationCode}`);
-    } else {
-        throw new Error('获取验证码失败，返回值为空');
+        // 等待重试
+        await new Promise(resolve => setTimeout(resolve, retryInterval));
     }
 
-    return verificationCode;
+    throw new Error('获取验证码失败，达到最大重试次数');
 }
 
 // 完整的一键注册流程
@@ -136,7 +163,10 @@ router.post('/complete', async (req, res) => {
             throw new Error(`不支持的注册流程类型: ${config.registration.type}`);
         }
 
-        // 如果是手动模式，打印账号信息并等待用户操作
+        // 自动注册流程
+        const registerStartTime = Date.now();
+        logger.info(`开始注册流程的时间: ${new Date(registerStartTime).toLocaleString()}`);
+        
         if (config.registration.manual) {
             // 手动注册流程
             const { browser: registerBrowser, page: registrationPage } = await registrationFlow.manualRegister(browser, initialPage, account);
@@ -165,7 +195,8 @@ router.post('/complete', async (req, res) => {
             registrationFlow,
             emailHandler,
             tempMail,
-            publicMailApi
+            publicMailApi,
+            requestStartTime: registerStartTime
         });
 
         if (config.registration.manual) {
@@ -245,17 +276,33 @@ router.post('/complete', async (req, res) => {
         });
     } finally {
         // 清理资源
-        if (emailHandler) {
-            await emailHandler.close();
-        }
-        if (tempMailPage) {
-            await tempMailPage.close();
-        }
-        if (page) {
-            await page.close();
-        }
-        if (browser) {
-            await browser.close();
+        try {
+            // 按照依赖关系顺序关闭资源
+            if (emailHandler) {
+                logger.info('正在关闭邮件处理器...');
+                await emailHandler.close().catch(err => logger.warn('关闭邮件处理器时出错:', err));
+                logger.info('邮件处理器已关闭');
+            }
+            
+            if (tempMailPage) {
+                logger.info('正在关闭临时邮箱页面...');
+                await tempMailPage.close().catch(err => logger.warn('关闭临时邮箱页面时出错:', err));
+            }
+            
+            if (page) {
+                logger.info('正在关闭页面...');
+                await page.close().catch(err => logger.warn('关闭页面时出错:', err));
+            }
+            
+            if (browser) {
+                logger.info('正在关闭浏览器...');
+                await browser.close().catch(err => logger.warn('关闭浏览器时出错:', err));
+                logger.info('浏览器已关闭');
+            }
+            
+            logger.info('所有资源已清理完毕');
+        } catch (cleanupError) {
+            logger.error('清理资源时发生错误:', cleanupError);
         }
     }
 });
@@ -369,6 +416,9 @@ router.post('/register', async (req, res) => {
         }
 
         // 执行自动注册流程
+        const registerStartTime = Date.now();
+        logger.info(`开始注册流程的时间: ${new Date(registerStartTime).toLocaleString()}`);
+        
         const { browser: registerBrowser, page: registrationPage } = await registrationFlow.register(browser, initialPage, account);
         browser = registerBrowser;
         page = registrationPage;
@@ -382,7 +432,8 @@ router.post('/register', async (req, res) => {
             registrationFlow,
             emailHandler,
             tempMail,
-            publicMailApi
+            publicMailApi,
+            requestStartTime: registerStartTime
         });
 
         // 更新记录
@@ -436,17 +487,33 @@ router.post('/register', async (req, res) => {
         });
     } finally {
         // 清理资源
-        if (emailHandler) {
-            await emailHandler.close();
-        }
-        if (tempMailPage) {
-            await tempMailPage.close();
-        }
-        if (page) {
-            await page.close();
-        }
-        if (browser) {
-            await browser.close();
+        try {
+            // 按照依赖关系顺序关闭资源
+            if (emailHandler) {
+                logger.info('正在关闭邮件处理器...');
+                await emailHandler.close().catch(err => logger.warn('关闭邮件处理器时出错:', err));
+                logger.info('邮件处理器已关闭');
+            }
+            
+            if (tempMailPage) {
+                logger.info('正在关闭临时邮箱页面...');
+                await tempMailPage.close().catch(err => logger.warn('关闭临时邮箱页面时出错:', err));
+            }
+            
+            if (page) {
+                logger.info('正在关闭页面...');
+                await page.close().catch(err => logger.warn('关闭页面时出错:', err));
+            }
+            
+            if (browser) {
+                logger.info('正在关闭浏览器...');
+                await browser.close().catch(err => logger.warn('关闭浏览器时出错:', err));
+                logger.info('浏览器已关闭');
+            }
+            
+            logger.info('所有资源已清理完毕');
+        } catch (cleanupError) {
+            logger.error('清理资源时发生错误:', cleanupError);
         }
     }
 });
@@ -616,7 +683,10 @@ router.post('/quick-generate', async (req, res) => {
             throw new Error(`不支持的注册流程类型: ${config.registration.type}`);
         }
 
-        // 如果是手动模式，打印账号信息并等待用户操作
+        // 自动注册流程
+        const registerStartTime = Date.now();
+        logger.info(`开始注册流程的时间: ${new Date(registerStartTime).toLocaleString()}`);
+        
         if (config.registration.manual) {
             // 手动注册流程
             const { browser: registerBrowser, page: registrationPage } = await registrationFlow.manualRegister(browser, initialPage, account);
@@ -638,14 +708,15 @@ router.post('/quick-generate', async (req, res) => {
         }
 
         // 等待接收验证码邮件
-        logger.info(`使用邮箱 ${config.email.user} 接收验证码`);
+        logger.info(`不使用Cloudflare转发，将使用IMAP邮箱 ${config.email.user} 直接接收验证码`);
         const verificationCode = await getVerificationCode(account, config, {
             browser,
             tempMailPage,
             registrationFlow,
             emailHandler,
             tempMail,
-            publicMailApi
+            publicMailApi,
+            requestStartTime: registerStartTime
         });
 
         if (config.registration.manual) {
@@ -723,17 +794,33 @@ router.post('/quick-generate', async (req, res) => {
         });
     } finally {
         // 清理资源
-        if (emailHandler) {
-            await emailHandler.close();
-        }
-        if (tempMailPage) {
-            await tempMailPage.close();
-        }
-        if (page) {
-            await page.close();
-        }
-        if (browser) {
-            await browser.close();
+        try {
+            // 按照依赖关系顺序关闭资源
+            if (emailHandler) {
+                logger.info('正在关闭邮件处理器...');
+                await emailHandler.close().catch(err => logger.warn('关闭邮件处理器时出错:', err));
+                logger.info('邮件处理器已关闭');
+            }
+            
+            if (tempMailPage) {
+                logger.info('正在关闭临时邮箱页面...');
+                await tempMailPage.close().catch(err => logger.warn('关闭临时邮箱页面时出错:', err));
+            }
+            
+            if (page) {
+                logger.info('正在关闭页面...');
+                await page.close().catch(err => logger.warn('关闭页面时出错:', err));
+            }
+            
+            if (browser) {
+                logger.info('正在关闭浏览器...');
+                await browser.close().catch(err => logger.warn('关闭浏览器时出错:', err));
+                logger.info('浏览器已关闭');
+            }
+            
+            logger.info('所有资源已清理完毕');
+        } catch (cleanupError) {
+            logger.error('清理资源时发生错误:', cleanupError);
         }
     }
 });
