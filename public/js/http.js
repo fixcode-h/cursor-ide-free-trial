@@ -107,6 +107,8 @@ window.API = {
         list: () => http.get('/api/accounts'),
         create: (data) => http.post('/api/accounts', data),
         delete: (email) => http.delete(`/api/accounts/${email}`),
+        getUsage: (email) => http.get(`/api/accounts/${email}/usage`),
+        update: (email, data) => http.put(`/api/accounts/${email}`, data),
     },
     register: {
         complete: () => http.post('/api/register/complete'),

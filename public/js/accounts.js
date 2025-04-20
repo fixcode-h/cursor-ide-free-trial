@@ -76,6 +76,13 @@ function displayAccounts(accounts) {
         const firstName = account.firstName || account.firstname || '';
         const lastName = account.lastName || account.lastname || '';
         const username = account.username || '';
+        
+        // 使用量信息
+        const numRequests = account.numRequests || 0;
+        const maxRequestUsage = account.maxRequestUsage || 0;
+        const usageDisplay = `${numRequests}/${maxRequestUsage}`;
+        const usagePercent = maxRequestUsage > 0 ? (numRequests / maxRequestUsage) * 100 : 0;
+        const progressBarClass = usagePercent > 80 ? 'bg-danger' : usagePercent > 50 ? 'bg-warning' : 'bg-success';
 
         // 根据状态决定是否显示注册按钮
         const showRegisterButton = status !== 'VERIFIED';
@@ -83,6 +90,18 @@ function displayAccounts(accounts) {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td class="text-light">${email}</td>
+            <td>
+                <div class="d-flex align-items-center">
+                    <div class="usage-info text-light" style="min-width: 80px;">${usageDisplay}</div>
+                    <div class="progress flex-grow-1 mx-2" style="height: 6px;">
+                        <div class="progress-bar ${progressBarClass}" role="progressbar" style="width: ${usagePercent}%" 
+                             aria-valuenow="${numRequests}" aria-valuemin="0" aria-valuemax="${maxRequestUsage}"></div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-info refresh-usage-btn" data-email="${email}" title="刷新使用量">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                </div>
+            </td>
             <td class="text-light">${'•'.repeat(8)}</td>
             <td><span class="badge ${statusClassMap[status] || 'bg-warning'}">${statusMap[status] || '未知状态'}</span></td>
             <td class="text-light">${new Date(createdAt).toLocaleString()}</td>
@@ -123,6 +142,42 @@ function displayAccounts(accounts) {
             </td>
         `;
         tableBody.appendChild(row);
+    });
+
+    // 添加刷新使用量按钮事件监听
+    document.querySelectorAll('.refresh-usage-btn').forEach(button => {
+        button.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const target = e.target.closest('.refresh-usage-btn');
+            const email = target.dataset.email;
+            
+            // 禁用按钮并显示加载状态
+            target.disabled = true;
+            target.innerHTML = '<i class="bi bi-arrow-repeat spin"></i>';
+            
+            try {
+                await refreshUsage(email);
+                
+                // 恢复按钮状态
+                target.disabled = false;
+                target.innerHTML = '<i class="bi bi-arrow-clockwise"></i>';
+                
+                // 显示成功提示
+                appendToConsole('success', `账号 ${email} 使用量已更新`);
+            } catch (error) {
+                // 恢复按钮状态并显示错误
+                target.disabled = false;
+                target.innerHTML = '<i class="bi bi-arrow-clockwise"></i>';
+                appendToConsole('error', `更新使用量失败: ${error.message}`);
+                
+                // 显示错误提示
+                target.classList.add('btn-outline-danger');
+                setTimeout(() => {
+                    target.classList.remove('btn-outline-danger');
+                    target.classList.add('btn-outline-info');
+                }, 2000);
+            }
+        });
     });
 
     // 添加复制邮箱按钮事件监听
@@ -288,6 +343,23 @@ function displayAccounts(accounts) {
             }
         });
     });
+}
+
+// 刷新账号使用量
+async function refreshUsage(email) {
+    try {
+        const response = await API.accounts.getUsage(email);
+        if (!response.success) {
+            throw new Error(response.error || '获取使用量失败');
+        }
+        
+        // 更新成功后，刷新账号列表
+        await fetchAccounts();
+        return response.data;
+    } catch (error) {
+        console.error(`刷新账号 ${email} 使用量失败:`, error);
+        throw error;
+    }
 }
 
 // 添加通用复制函数

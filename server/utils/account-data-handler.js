@@ -81,10 +81,40 @@ class AccountDataHandler {
                 verificationCode TEXT,
                 registrationType TEXT,
                 createdAt TEXT,
-                updatedAt TEXT
+                updatedAt TEXT,
+                maxRequestUsage INTEGER DEFAULT 0,
+                numRequests INTEGER DEFAULT 0
             )
         `;
         await this.db.exec(sql);
+        
+        // 检查并更新表结构
+        await this.updateTableStructure();
+    }
+    
+    async updateTableStructure() {
+        try {
+            // 获取表的所有列信息
+            const tableInfo = await this.db.all(`PRAGMA table_info(accounts)`);
+            
+            // 检查字段是否存在
+            const hasMaxRequestUsage = tableInfo.some(column => column.name === 'maxRequestUsage');
+            const hasNumRequests = tableInfo.some(column => column.name === 'numRequests');
+            
+            // 如果字段不存在，添加这些字段
+            if (!hasMaxRequestUsage) {
+                await this.db.exec(`ALTER TABLE accounts ADD COLUMN maxRequestUsage INTEGER DEFAULT 0`);
+                logger.info('添加字段: maxRequestUsage');
+            }
+            
+            if (!hasNumRequests) {
+                await this.db.exec(`ALTER TABLE accounts ADD COLUMN numRequests INTEGER DEFAULT 0`);
+                logger.info('添加字段: numRequests');
+            }
+        } catch (error) {
+            logger.error('更新表结构失败:', error);
+            // 不抛出错误，让初始化继续
+        }
     }
 
     async readRecords() {
@@ -133,7 +163,23 @@ class AccountDataHandler {
                 .map(key => `${key} = ?`)
                 .join(',');
             
-            const values = [...Object.values(updates), this.registrationType, identifier];
+            // 处理数字类型字段，确保是数字而不是字符串
+            if (updates.maxRequestUsage !== undefined) {
+                updates.maxRequestUsage = Number(updates.maxRequestUsage) || 0;
+            }
+            if (updates.numRequests !== undefined) {
+                updates.numRequests = Number(updates.numRequests) || 0;
+            }
+            
+            // 准备参数值
+            const values = [
+                ...Object.values(updates),  // 更新字段的值
+                this.registrationType,      // WHERE条件：注册类型
+                identifier,                 // WHERE条件：email
+                identifier                  // WHERE条件：username（使用同一标识符）
+            ];
+            
+            logger.debug(`更新记录 ${identifier}，字段: ${Object.keys(updates).join(', ')}`);
 
             const sql = `
                 UPDATE accounts 
@@ -142,12 +188,12 @@ class AccountDataHandler {
                 AND (email = ? OR username = ?)
             `;
 
-            const result = await this.db.run(sql, [...values, identifier]);
+            const result = await this.db.run(sql, values);
 
             if (result.changes === 0) {
                 logger.warn(`未找到要更新的记录: ${identifier}`);
             } else {
-                logger.info('更新记录成功');
+                logger.info(`更新记录成功: ${identifier}, 影响行数: ${result.changes}`);
             }
 
             // 返回更新后的所有记录

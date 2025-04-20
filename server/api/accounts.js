@@ -9,9 +9,12 @@ const { getConfig } = require('../utils/config');
 const { broadcastMessage } = require('../utils/websocket');
 const csv = require('csv-parse/sync');
 const { stringify } = require('csv-stringify/sync');
+const Cursor = require('../flows/cursor');
 
 // 初始化数据处理器
 const accountDataHandler = new AccountDataHandler();
+// 创建Cursor单例
+const cursorInstance = new Cursor();
 
 // 确保数据库已初始化
 (async () => {
@@ -458,6 +461,86 @@ router.post('/import', async (req, res) => {
         res.status(500).json({ 
             success: false, 
             error: '导入账号数据失败',
+            message: error.message 
+        });
+    }
+});
+
+// 获取账号使用量
+router.get('/:email/usage', async (req, res) => {
+    try {
+        const { email } = req.params;
+        const accounts = await accountDataHandler.readRecords();
+        const account = accounts.find(a => a.email === email);
+        
+        if (!account) {
+            return res.status(404).json({ 
+                success: false, 
+                error: '账号不存在' 
+            });
+        }
+
+        // 检查账号是否有cookie
+        if (!account.cookie) {
+            return res.status(400).json({ 
+                success: false, 
+                error: '该账号未登录，无法获取使用量' 
+            });
+        }
+
+        // 获取使用量
+        try {
+            const usage = await cursorInstance.getUseage(account.cookie);
+            logger.info(`成功获取账号 ${email} 使用情况: ${usage.numRequests}/${usage.maxRequestUsage}`);
+            
+            // 更新账号记录中的使用量信息
+            try {
+                // 构建更新数据
+                const updateData = {
+                    maxRequestUsage: usage.maxRequestUsage || 0,
+                    numRequests: usage.numRequests || 0,
+                    updatedAt: new Date().toISOString()
+                };
+                
+                // 使用账号邮箱作为标识符更新记录
+                await accountDataHandler.updateRecord(email, updateData);
+                logger.info(`成功更新账号 ${email} 的使用量记录`);
+                
+                return res.json({
+                    success: true,
+                    data: {
+                        email: account.email,
+                        maxRequestUsage: usage.maxRequestUsage || 0,
+                        numRequests: usage.numRequests || 0
+                    }
+                });
+            } catch (updateError) {
+                logger.error(`更新账号 ${email} 使用量记录失败:`, updateError);
+                
+                // 即使更新失败，仍然返回成功获取的使用量数据
+                return res.json({
+                    success: true,
+                    warning: '获取使用量成功，但更新账号记录失败',
+                    data: {
+                        email: account.email,
+                        maxRequestUsage: usage.maxRequestUsage || 0,
+                        numRequests: usage.numRequests || 0
+                    }
+                });
+            }
+        } catch (error) {
+            logger.error(`获取账号 ${email} 使用量失败:`, error);
+            return res.status(500).json({
+                success: false,
+                error: '获取使用量失败',
+                message: error.message
+            });
+        }
+    } catch (error) {
+        logger.error('获取账号使用量失败:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: '获取账号使用量失败',
             message: error.message 
         });
     }

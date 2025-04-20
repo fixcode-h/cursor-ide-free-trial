@@ -37,12 +37,35 @@ html, body {
     height: 100%;
 }
 
-/* 左侧面板样式 */
+/* 左侧面板样式 - 增加宽度 */
 .left-panel {
     background-color: var(--dark-bg);
     border-right: 1px solid #404040;
     padding: 20px;
     height: 100vh;
+    width: 70%; /* 增加宽度 */
+}
+
+/* 右侧面板样式 - 减少宽度 */
+.right-panel {
+    background-color: var(--dark-secondary);
+    padding: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    width: 30%; /* 减少宽度 */
+}
+
+/* 列宽度覆盖 */
+@media (min-width: 768px) {
+    .col-md-8 {
+        flex: 0 0 70%;
+        max-width: 70%;
+    }
+    .col-md-4 {
+        flex: 0 0 30%;
+        max-width: 30%;
+    }
 }
 
 /* 标签页样式 */
@@ -124,15 +147,6 @@ html, body {
 
 .form-label {
     color: var(--dark-text);
-}
-
-/* 右侧控制台样式 */
-.right-panel {
-    background-color: var(--dark-secondary);
-    padding: 0;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
 }
 
 .console-header {
@@ -330,7 +344,7 @@ body {
 }
 
 .table td {
-    color: var(--dark-text);
+    color: var(--dark-text) !important; /* 确保所有单元格的文本颜色 */
     border-color: var(--dark-border);
 }
 
@@ -338,7 +352,36 @@ body {
     background-color: rgba(255, 255, 255, 0.05);
 }
 
+.table-striped > tbody > tr:nth-of-type(even) {
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
 .table-hover > tbody > tr:hover {
     background-color: rgba(255, 255, 255, 0.1);
     color: var(--dark-text);
+}
+
+/* 修复使用量文本颜色问题 */
+.usage-info {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--dark-text) !important;
+}
+
+.table-striped .usage-info {
+    color: var(--dark-text) !important;
+}
+
+.progress {
+    background-color: #444;
+}
+
+/* 旋转动画 */
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 } 
