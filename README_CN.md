@@ -78,15 +78,12 @@
    - 勾选"使用代理"以确保邮件服务稳定性
    - 选择以下任一邮箱配置方式：
 
-   A. IMAP 形式（推荐）：
-      - 前置准备：配置 Cloudflare 域名邮箱转发（[详细说明](doc/cloudflare-email-setup-cn.md)）
-      - 配置步骤：
-        * 选择 Gmail 作为收件邮箱（推荐）
-        * 填写完整收件邮箱地址
-        * 填写邮箱应用密码（Gmail 需要使用应用专用密码）
-        * 勾选"启用 IMAP"
-        * IMAP 主机设置为：imap.gmail.com
-        * IMAP 端口设置为：993
+   A. IMAP 形式：
+      - 前置准备：需要一个支持 IMAP 协议的邮箱
+      - 设置内容：
+        * IMAP/SMTP 服务器地址、端口
+        * 邮箱账号密码（建议使用应用专用密码）
+        * 邮箱如 Gmail、Outlook等都可以使用
 
    B. TempMail 形式：
       - 前置准备：了解 TempMail 服务使用方法（[详细说明](doc/tempmail-setup-cn.md)）

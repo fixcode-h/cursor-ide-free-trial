@@ -3,7 +3,6 @@ const path = require('path');
 const router = express.Router();
 const logger = require('../utils/logger');
 const { getConfig } = require('../utils/config');
-const CloudflareEmailManager = require('../utils/cloudflare-email-router');
 const AccountDataHandler = require('../utils/account-data-handler');
 const EmailHandler = require('../utils/email-handler');
 const BrowserInitializer = require('../utils/browser-initializer');
@@ -83,7 +82,6 @@ async function getVerificationCode(account, config, { browser = null, registrati
 
 // 完整的一键注册流程
 router.post('/complete', async (req, res) => {
-    let cloudflareManager = null;
     let accountDataHandler = null;
     let emailHandler = null;
     let browser = null;
@@ -157,7 +155,7 @@ router.post('/complete', async (req, res) => {
         }
 
         // 等待接收验证码邮件
-        logger.info(`不使用Cloudflare转发，将使用IMAP邮箱 ${config.email.user} 直接接收验证码`);
+        logger.info(`使用IMAP邮箱 ${config.email.user} 接收验证码`);
         const verificationCode = await getVerificationCode(account, config, {
             browser,
             registrationFlow,
@@ -373,7 +371,7 @@ router.post('/register', async (req, res) => {
         logger.info(`${config.registration.type} 注册流程执行完成，等待验证码`);
 
         // 等待接收验证码邮件
-        logger.info(`不使用Cloudflare转发，将使用IMAP邮箱 ${config.email.user} 直接接收验证码`);
+        logger.info(`使用IMAP邮箱 ${config.email.user} 接收验证码`);
         const verificationCode = await getVerificationCode(account, config, {
             browser,
             registrationFlow,
@@ -634,7 +632,7 @@ router.post('/quick-generate', async (req, res) => {
         }
 
         // 等待接收验证码邮件
-        logger.info(`不使用Cloudflare转发，将使用IMAP邮箱 ${config.email.user} 直接接收验证码`);
+        logger.info(`使用IMAP邮箱 ${config.email.user} 接收验证码`);
         const verificationCode = await getVerificationCode(account, config, {
             browser,
             registrationFlow,

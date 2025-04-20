@@ -5,7 +5,6 @@ const fs = require('fs').promises;
 const path = require('path');
 const AccountDataHandler = require('../utils/account-data-handler');
 const AccountGenerator = require('../utils/account-generator');
-const CloudflareEmailManager = require('../utils/cloudflare-email-router');
 const { getConfig } = require('../utils/config');
 const { broadcastMessage } = require('../utils/websocket');
 const csv = require('csv-parse/sync');
@@ -134,31 +133,6 @@ router.delete('/:email', async (req, res) => {
 
         const account = accounts[accountIndex];
         const config = getConfig();
-
-        // 尝试删除远程邮件路由，但即使失败也继续删除本地记录
-        try {
-            const cloudflareManager = new CloudflareEmailManager(config);
-            // 获取所有邮件路由规则
-            const emailRoutes = await cloudflareManager.listEmailRoutes();
-            
-            // 查找对应的路由规则
-            const routeToDelete = emailRoutes.find(route => 
-                route.matchers.some(matcher => 
-                    matcher.type === 'literal' && 
-                    matcher.field === 'to' && 
-                    matcher.value === email
-                )
-            );
-
-            // 如果找到对应的路由规则，删除它
-            if (routeToDelete) {
-                await cloudflareManager.removeEmailRoute(routeToDelete.id);
-                logger.info('已删除 Cloudflare 邮件路由:', email);
-            }
-        } catch (remoteError) {
-            // 记录远程删除失败，但不中断流程
-            logger.error('远程邮件路由删除失败，继续删除本地记录:', remoteError);
-        }
 
         // 删除本地记录
         accounts.splice(accountIndex, 1);

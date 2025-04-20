@@ -10,7 +10,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const imapEnabled = document.getElementById('imapEnabled');
     const imapSettings = document.getElementById('imapSettings');
     const emailProxySettings = document.getElementById('emailProxySettings');
-    const cloudflareSettings = document.getElementById('cloudflareSettings');
     // 获取代理设置DOM元素
     const proxyEnabled = document.getElementById('proxyEnabled');
     const proxySettings = document.getElementById('proxySettings');
@@ -70,9 +69,6 @@ document.addEventListener('DOMContentLoaded', function() {
         imapSettings.style.display = 'none';
         smtpSettingsEnabled.style.display = 'none';
         imapSettingsEnabled.style.display = 'none';
-
-        // Cloudflare设置根据邮箱类型显示/隐藏
-        cloudflareSettings.style.display = 'block';
 
         // 根据选择显示相应设置
         if (this.value === 'imap') {

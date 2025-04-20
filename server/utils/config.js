@@ -17,10 +17,6 @@ const defaultConfig = {
         port: 10808,
         protocol: 'socks5' // 可选: http, https, socks5
     },
-    cloudflare: {
-        apiToken: '',
-        zoneId: '',
-    },
     email: {
         type: 'imap', // 邮箱类型: 只支持 'imap'
         user: '',

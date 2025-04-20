@@ -61,7 +61,7 @@
                             <h3>账号列表</h3>
                             <div class="alert alert-dark bg-dark-subtle border-dark text-light" role="alert" style="background-color: #1a1a1a !important; border-color: #404040;">
                                 <i class="bi bi-info-circle me-2"></i>
-                                历史账号列表，可以管理或删除账号，账号删除时会同步删除Cloudflare邮箱。
+                                历史账号列表，可以管理或删除账号。
                             </div>
                             <div class="mb-3">
                                 <button class="btn btn-secondary" id="refreshAccounts">刷新列表</button>
@@ -316,7 +316,7 @@
                             <h3>设置</h3>
                             <div class="alert alert-dark bg-dark-subtle border-dark text-light" role="alert" style="background-color: #1a1a1a !important; border-color: #404040;">
                                 <i class="bi bi-info-circle me-2"></i>
-                                配置代理、Cloudflare、邮箱、日志、注册、浏览器等设置。
+                                配置代理、邮箱、日志、注册、浏览器等设置。
                             </div>
 
                             <div class="card mb-4">
@@ -491,25 +491,8 @@
                                                     <div class="mb-3">
                                                         <label for="imapVirtualDomain" class="form-label">虚拟域名</label>
                                                         <input type="text" class="form-control" id="imapVirtualDomain" name="email.imap.virtualDomain">
-                                                        <div class="form-text text-muted">用于生成临时邮箱的域名后缀，如example.com</div>
+                                                        <div class="form-text text-muted">用于生成邮箱的域名后缀</div>
                                                     </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Cloudflare设置 -->
-                                        <div class="card mb-3" id="cloudflareSettings">
-                                            <div class="card-header">Cloudflare设置</div>
-                                            <div class="card-body">
-                                                <div class="mb-3">
-                                                    <label for="cloudflareApiToken" class="form-label">API Token</label>
-                                                    <input type="password" class="form-control" id="cloudflareApiToken" name="cloudflare.apiToken">
-                                                    <div class="form-text text-muted">Cloudflare API令牌，用于管理邮件转发规则</div>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label for="cloudflareZoneId" class="form-label">Zone ID</label>
-                                                    <input type="text" class="form-control" id="cloudflareZoneId" name="cloudflare.zoneId">
-                                                    <div class="form-text text-muted">Cloudflare域名的Zone ID，可在域名概述页面找到</div>
                                                 </div>
                                             </div>
                                         </div>

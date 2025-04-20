@@ -78,15 +78,12 @@ Main features include:
    - Check "Use Proxy" to ensure email service stability
    - Choose one of the following email configuration methods:
 
-   A. IMAP Method (Recommended):
-      - Prerequisites: Configure Cloudflare domain email forwarding ([Detailed instructions](doc/cloudflare-email-setup-cn.md))
-      - Configuration steps:
-        * Choose Gmail as receiving mailbox (recommended)
-        * Enter complete receiving email address
-        * Enter email application password (Gmail requires app-specific password)
-        * Enable "Enable IMAP"
-        * Set IMAP host to: imap.gmail.com
-        * Set IMAP port to: 993
+   A. IMAP Format:
+      - Prerequisites: Need an email that supports IMAP protocol
+      - Settings:
+        * IMAP/SMTP server address and port
+        * Email account password (recommend using app-specific passwords)
+        * Email services like Gmail, Outlook, etc. can be used
 
    B. TempMail Method:
       - Prerequisites: Understand TempMail service usage ([Detailed instructions](doc/tempmail-setup-cn.md))
