@@ -124,6 +124,8 @@ router.post('/', async (req, res) => {
 router.delete('/:email', async (req, res) => {
     try {
         const { email } = req.params;
+        
+        // 验证账号是否存在
         const accounts = await accountDataHandler.readRecords();
         const accountIndex = accounts.findIndex(a => a.email === email);
         
@@ -134,12 +136,8 @@ router.delete('/:email', async (req, res) => {
             });
         }
 
-        const account = accounts[accountIndex];
-        const config = getConfig();
-
         // 删除本地记录
-        accounts.splice(accountIndex, 1);
-        await accountDataHandler.updateRecords(accounts);
+        await accountDataHandler.deleteRecord(email);
         
         // 通过 WebSocket 发送删除消息
         broadcastMessage({
