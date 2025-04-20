@@ -186,6 +186,16 @@ router.post('/complete', async (req, res) => {
         }
         logger.info('成功获取 session token');
 
+        // 先关闭正在运行的Cursor进程
+        logger.info('正在关闭当前运行的Cursor进程...');
+        await registrationFlow.killCursorProcess();
+        logger.info('Cursor进程已关闭');
+
+        // 重置机器码
+        logger.info('正在重置机器码...');
+        await registrationFlow.resetMachineCodes();
+        logger.info('机器码重置完成');
+
         // 更新认证信息
         const authSuccess = await registrationFlow.updateAuth(
             account.email,
@@ -197,11 +207,6 @@ router.post('/complete', async (req, res) => {
             throw new Error('更新认证信息失败');
         }
         logger.info('认证信息更新成功');
-
-        // 重置机器码
-        logger.info('正在重置机器码...');
-        await registrationFlow.resetMachineCodes();
-        logger.info('机器码重置完成');
 
         // 只有在整个流程都成功完成后，才将账号添加到数据库
         const newRecord = {
@@ -225,9 +230,23 @@ router.post('/complete', async (req, res) => {
         }
         logger.info('账号信息已保存到数据库');
 
+        // 尝试启动Cursor应用以激活新账号
+        try {
+            logger.info('尝试启动Cursor应用以激活新账号...');
+            const cursorPath = registrationFlow.getCursorExecutablePath();
+            const { spawn } = require('child_process');
+            spawn(cursorPath, [], {
+                detached: true,
+                stdio: 'ignore'
+            }).unref();
+            logger.info('Cursor应用已启动，新账号应已激活');
+        } catch (startError) {
+            logger.warn('自动启动Cursor应用失败，可能需要手动启动:', startError);
+        }
+
         res.json({
             success: true,
-            message: '注册流程已完成',
+            message: '注册流程已完成，账号已切换',
             account: { ...account, verificationCode }
         });
 
@@ -248,11 +267,7 @@ router.post('/complete', async (req, res) => {
                 logger.info('邮件处理器已关闭');
             }
             
-            if (page) {
-                logger.info('正在关闭页面...');
-                await page.close().catch(err => logger.warn('关闭页面时出错:', err));
-            }
-            
+            // 关闭浏览器
             if (browser) {
                 logger.info('正在关闭浏览器...');
                 await browser.close().catch(err => logger.warn('关闭浏览器时出错:', err));
@@ -498,6 +513,11 @@ router.post('/login', async (req, res) => {
         const Flow = config.registration.type === 'copilot' ? Copilot : Cursor;
         const flow = new Flow();
 
+        // 先关闭正在运行的Cursor进程
+        logger.info('正在关闭当前运行的Cursor进程...');
+        await flow.killCursorProcess();
+        logger.info('Cursor进程已关闭');
+
         // 重置机器码
         logger.info('正在重置机器码...');
         await flow.resetMachineCodes();
@@ -507,7 +527,7 @@ router.post('/login', async (req, res) => {
         logger.info('正在执行登录流程...');
         const account = { email, password };
         const { browser: loginBrowser, page: loginPage } = await flow.login(browser, page, account);
-        logger.info('浏览器已准备就绪，请在浏览器中完成登录');
+        logger.info('登录流程已完成');
 
         logger.info('正在获取登录信息...');
 
@@ -521,8 +541,9 @@ router.post('/login', async (req, res) => {
 
         // 设置token
         await flow.updateAuth(account.email, sessionToken, sessionToken)
+        logger.info('认证信息更新成功');
 
-        // 更新账号Cooie
+        // 更新账号Cookie
         await accountDataHandler.updateRecord(
             account.email,
             { 
@@ -540,11 +561,25 @@ router.post('/login', async (req, res) => {
             await loginBrowser.close();
         }
 
+        // 尝试启动Cursor应用以激活新账号
+        try {
+            logger.info('尝试启动Cursor应用以激活新账号...');
+            const cursorPath = flow.getCursorExecutablePath();
+            const { spawn } = require('child_process');
+            spawn(cursorPath, [], {
+                detached: true,
+                stdio: 'ignore'
+            }).unref();
+            logger.info('Cursor应用已启动，新账号应已激活');
+        } catch (startError) {
+            logger.warn('自动启动Cursor应用失败，可能需要手动启动:', startError);
+        }
+
         logger.info('登录流程已完成');
 
         res.json({
             success: true,
-            message: '登录流程已完成'
+            message: '登录流程已完成，账号已切换'
         });
 
     } catch (error) {
