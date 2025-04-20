@@ -416,12 +416,11 @@
                                                     <label for="emailType" class="form-label">邮箱类型</label>
                                                     <select class="form-select" id="emailType" name="email.type">
                                                         <option value="imap">IMAP</option>
-                                                        <option value="tempmail">TempMail</option>
                                                     </select>
-                                                    <div class="form-text text-muted">选择邮箱服务类型，IMAP用于永久邮箱，TempMail用于一次性使用</div>
+                                                    <div class="form-text text-muted">目前仅支持IMAP邮箱</div>
                                                 </div>
                                                 
-                                                <!-- IMAP和TempMail通用设置 -->
+                                                <!-- 通用邮箱设置 -->
                                                 <div id="commonEmailSettings">
                                                     <div class="mb-3">
                                                         <label for="emailUser" class="form-label">邮箱账号</label>
@@ -432,42 +431,6 @@
                                                         <label for="emailPass" class="form-label">邮箱密码</label>
                                                         <input type="password" class="form-control" id="emailPass" name="email.pass">
                                                         <div class="form-text text-muted">邮箱的密码或应用专用密码</div>
-                                                    </div>
-                                                </div>
-
-                                                <!-- 临时邮箱设置 -->
-                                                <div id="tempmailSettings">
-                                                    <div class="mb-3">
-                                                        <label for="tempmailDomain" class="form-label">首选域名</label>
-                                                        <input type="text" class="form-control" id="tempmailDomain" name="email.tempmail.preferredDomain">
-                                                        <div class="form-text text-muted">临时邮箱服务提供的域名，建议使用默认值</div>
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="checkbox" id="customizeUsername" name="email.tempmail.customizeUsername">
-                                                            <label class="form-check-label" for="customizeUsername">自定义用户名</label>
-                                                            <div class="form-text text-muted">是否使用自定义的邮箱用户名，否则将随机生成</div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <label for="tempmailUsername" class="form-label">用户名</label>
-                                                        <input type="text" class="form-control" id="tempmailUsername" name="email.tempmail.username">
-                                                        <div class="form-text text-muted">自定义的临时邮箱用户名前缀</div>
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <label for="tempmailPin" class="form-label">PIN码</label>
-                                                        <input type="text" class="form-control" id="tempmailPin" name="email.tempmail.pin">
-                                                        <div class="form-text text-muted">临时邮箱的安全PIN码，用于恢复邮箱访问</div>
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <label for="tempmailLifetime" class="form-label">有效期</label>
-                                                        <select class="form-select" id="tempmailLifetime" name="email.tempmail.lifetime">
-                                                            <option value="10min">10分钟</option>
-                                                            <option value="60min">60分钟</option>
-                                                            <option value="2days">2天</option>
-                                                            <option value="7days">7天</option>
-                                                        </select>
-                                                        <div class="form-text text-muted">临时邮箱的有效使用期限，过期后将被删除</div>
                                                     </div>
                                                 </div>
 

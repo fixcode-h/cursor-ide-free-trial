@@ -22,26 +22,9 @@ const defaultConfig = {
         zoneId: '',
     },
     email: {
-        type: 'imap', // 可选: 'tempmail', 'imap'
+        type: 'imap', // 邮箱类型: 只支持 'imap'
         user: '',
         pass: '',
-        tempmail: {
-            // 可用域名列表:
-            // 'mailto.plus',
-            // 'fexpost.com',
-            // 'fexbox.org',
-            // 'mailbox.in.ua',
-            // 'rover.info',
-            // 'chitthi.in',
-            // 'fextemp.com',
-            // 'any.pink',
-            // 'merepost.com'
-            preferredDomain: 'fexpost.com', // 默认使用的域名
-            customizeUsername: true, // 是否允许自定义用户名
-            username: '', // 指定的邮箱用户名
-            pin: '', // pin码
-            lifetime: '2days' // 可选: '10min', '60min', '2days', '7days'
-        },
         smtp: {
             enabled: false, // 默认不连接
             host: 'smtp.gmail.com',
@@ -53,7 +36,7 @@ const defaultConfig = {
             host: 'imap.gmail.com',
             port: 993,
             secure: true,
-            virtualDomain: '' // 用于生成临时邮箱的域名后缀，从cloudflare移动过来
+            virtualDomain: '' // 用于生成邮箱的域名后缀
         }
     },
     logging: {

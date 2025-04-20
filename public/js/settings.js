@@ -2,7 +2,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const settingsForm = document.getElementById('settingsForm');
     const resetButton = document.getElementById('resetSettings');
     const emailType = document.getElementById('emailType');
-    const tempmailSettings = document.getElementById('tempmailSettings');
     const commonEmailSettings = document.getElementById('commonEmailSettings');
     const smtpSettingsEnabled = document.getElementById('smtpSettingsEnabled');
     const smtpEnabled = document.getElementById('smtpEnabled');
@@ -66,7 +65,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // 邮箱类型切换处理
     emailType.addEventListener('change', function() {
         // 隐藏特定的邮箱设置
-        tempmailSettings.style.display = 'none';
         commonEmailSettings.style.display = 'none';
         smtpSettings.style.display = 'none';
         imapSettings.style.display = 'none';
@@ -77,20 +75,12 @@ document.addEventListener('DOMContentLoaded', function() {
         cloudflareSettings.style.display = 'block';
 
         // 根据选择显示相应设置
-        switch(this.value) {
-            case 'tempmail':
-                tempmailSettings.style.display = 'block';
-                commonEmailSettings.style.display = 'block';
-                smtpSettings.style.display = 'block';
-                imapSettings.style.display = 'block';
-                break;
-            case 'imap':
-                commonEmailSettings.style.display = 'block';
-                smtpSettings.style.display = 'block';
-                imapSettings.style.display = 'block';
-                smtpSettingsEnabled.style.display = 'block';
-                imapSettingsEnabled.style.display = 'block';
-                break;
+        if (this.value === 'imap') {
+            commonEmailSettings.style.display = 'block';
+            smtpSettings.style.display = 'block';
+            imapSettings.style.display = 'block';
+            smtpSettingsEnabled.style.display = 'block';
+            imapSettingsEnabled.style.display = 'block';
         }
     });
 

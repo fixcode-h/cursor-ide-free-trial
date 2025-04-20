@@ -6,13 +6,12 @@ const { getConfig } = require('../utils/config');
 const CloudflareEmailManager = require('../utils/cloudflare-email-router');
 const AccountDataHandler = require('../utils/account-data-handler');
 const EmailHandler = require('../utils/email-handler');
-const TempMail = require('../utils/tempmail');
 const BrowserInitializer = require('../utils/browser-initializer');
 const AccountGenerator = require('../utils/account-generator');
 const Cursor = require('../flows/cursor');
 const Copilot = require('../flows/copilot');
 
-async function getVerificationCode(account, config, { browser = null, tempMailPage = null, registrationFlow = null, emailHandler = null, tempMail = null, requestStartTime = null } = {}) {
+async function getVerificationCode(account, config, { browser = null, registrationFlow = null, emailHandler = null, requestStartTime = null } = {}) {
     logger.info('等待接收验证码邮件...');
     let verificationCode;
     let attempts = 0;
@@ -32,18 +31,11 @@ async function getVerificationCode(account, config, { browser = null, tempMailPa
         logger.info(`尝试获取验证码 (第 ${attempts}/${maxAttempts} 次)`);
 
         try {
-            if (config.email.type === 'tempmail') {
-                if (!tempMail || !browser || !tempMailPage || !registrationFlow) {
-                    throw new Error('TempMail 模式下需要提供 tempMail, browser, tempMailPage 和 registrationFlow');
-                }
-                verificationCode = await tempMail.waitForEmail(browser, tempMailPage, registrationFlow, account);
-            } else {
-                if (!emailHandler || !registrationFlow) {
-                    throw new Error('IMAP 模式下需要提供 emailHandler 和 registrationFlow');
-                }
-                // 调用时传入请求开始时间
-                verificationCode = await emailHandler.waitForVerificationEmail(registrationFlow, account, 300000, 5000, requestStartTime);
+            if (!emailHandler || !registrationFlow) {
+                throw new Error('IMAP 模式下需要提供 emailHandler 和 registrationFlow');
             }
+            // 调用时传入请求开始时间
+            verificationCode = await emailHandler.waitForVerificationEmail(registrationFlow, account, 300000, 5000, requestStartTime);
 
             // 确保验证码是字符串
             if (verificationCode) {
@@ -94,10 +86,8 @@ router.post('/complete', async (req, res) => {
     let cloudflareManager = null;
     let accountDataHandler = null;
     let emailHandler = null;
-    let tempMail = null;
     let browser = null;
     let page = null;
-    let tempMailPage = null;
     
     try {
         // 获取配置
@@ -111,16 +101,9 @@ router.post('/complete', async (req, res) => {
 
         // 根据配置初始化邮件处理器
         logger.info('初始化邮件处理器...');
-        if (config.email.type === 'tempmail') {
-            tempMail = new TempMail(config);
-            const { browser: tempMailBrowser, page: tempMailPageResult } = await tempMail.initialize(browser, initialPage);
-            tempMailPage = tempMailPageResult;
-            logger.info('TempMail 初始化完成');
-        } else {
-            emailHandler = new EmailHandler(config);
-            await emailHandler.initialize();
-            logger.info('EmailHandler 初始化完成');
-        }
+        emailHandler = new EmailHandler(config);
+        await emailHandler.initialize();
+        logger.info('EmailHandler 初始化完成');
 
         // 初始化浏览器
         logger.info('初始化浏览器...');
@@ -177,10 +160,8 @@ router.post('/complete', async (req, res) => {
         logger.info(`不使用Cloudflare转发，将使用IMAP邮箱 ${config.email.user} 直接接收验证码`);
         const verificationCode = await getVerificationCode(account, config, {
             browser,
-            tempMailPage,
             registrationFlow,
             emailHandler,
-            tempMail,
             requestStartTime: registerStartTime
         });
 
@@ -269,11 +250,6 @@ router.post('/complete', async (req, res) => {
                 logger.info('邮件处理器已关闭');
             }
             
-            if (tempMailPage) {
-                logger.info('正在关闭临时邮箱页面...');
-                await tempMailPage.close().catch(err => logger.warn('关闭临时邮箱页面时出错:', err));
-            }
-            
             if (page) {
                 logger.info('正在关闭页面...');
                 await page.close().catch(err => logger.warn('关闭页面时出错:', err));
@@ -296,9 +272,7 @@ router.post('/complete', async (req, res) => {
 router.post('/register', async (req, res) => {
     let browser = null;
     let page = null;
-    let tempMailPage = null;
     let emailHandler = null;
-    let tempMail = null;
     let accountDataHandler = null;
 
     try {
@@ -330,16 +304,9 @@ router.post('/register', async (req, res) => {
 
         // 根据配置初始化邮件处理器
         logger.info('初始化邮件处理器...');
-        if (config.email.type === 'tempmail') {
-            tempMail = new TempMail(config);
-            const { browser: tempMailBrowser, page: tempMailPageResult } = await tempMail.initialize(browser, initialPage);
-            tempMailPage = tempMailPageResult;
-            logger.info('TempMail 初始化完成');
-        } else {
-            emailHandler = new EmailHandler(config);
-            await emailHandler.initialize();
-            logger.info('EmailHandler 初始化完成');
-        }
+        emailHandler = new EmailHandler(config);
+        await emailHandler.initialize();
+        logger.info('EmailHandler 初始化完成');
 
         // 初始化浏览器
         logger.info('初始化浏览器...');
@@ -409,10 +376,8 @@ router.post('/register', async (req, res) => {
         logger.info(`不使用Cloudflare转发，将使用IMAP邮箱 ${config.email.user} 直接接收验证码`);
         const verificationCode = await getVerificationCode(account, config, {
             browser,
-            tempMailPage,
             registrationFlow,
             emailHandler,
-            tempMail,
             requestStartTime: registerStartTime
         });
 
@@ -473,11 +438,6 @@ router.post('/register', async (req, res) => {
                 logger.info('正在关闭邮件处理器...');
                 await emailHandler.close().catch(err => logger.warn('关闭邮件处理器时出错:', err));
                 logger.info('邮件处理器已关闭');
-            }
-            
-            if (tempMailPage) {
-                logger.info('正在关闭临时邮箱页面...');
-                await tempMailPage.close().catch(err => logger.warn('关闭临时邮箱页面时出错:', err));
             }
             
             if (page) {
@@ -603,10 +563,8 @@ router.post('/login', async (req, res) => {
 router.post('/quick-generate', async (req, res) => {
     let accountDataHandler = null;
     let emailHandler = null;
-    let tempMail = null;
     let browser = null;
     let page = null;
-    let tempMailPage = null;
     
     try {
         // 获取配置
@@ -620,16 +578,9 @@ router.post('/quick-generate', async (req, res) => {
 
         // 根据配置初始化邮件处理器
         logger.info('初始化邮件处理器...');
-        if (config.email.type === 'tempmail') {
-            tempMail = new TempMail(config);
-            const { browser: tempMailBrowser, page: tempMailPageResult } = await tempMail.initialize(browser, initialPage);
-            tempMailPage = tempMailPageResult;
-            logger.info('TempMail 初始化完成');
-        } else {
-            emailHandler = new EmailHandler(config);
-            await emailHandler.initialize();
-            logger.info('EmailHandler 初始化完成');
-        }
+        emailHandler = new EmailHandler(config);
+        await emailHandler.initialize();
+        logger.info('EmailHandler 初始化完成');
 
         // 初始化浏览器
         logger.info('初始化浏览器...');
@@ -686,10 +637,8 @@ router.post('/quick-generate', async (req, res) => {
         logger.info(`不使用Cloudflare转发，将使用IMAP邮箱 ${config.email.user} 直接接收验证码`);
         const verificationCode = await getVerificationCode(account, config, {
             browser,
-            tempMailPage,
             registrationFlow,
             emailHandler,
-            tempMail,
             requestStartTime: registerStartTime
         });
 
@@ -774,11 +723,6 @@ router.post('/quick-generate', async (req, res) => {
                 logger.info('正在关闭邮件处理器...');
                 await emailHandler.close().catch(err => logger.warn('关闭邮件处理器时出错:', err));
                 logger.info('邮件处理器已关闭');
-            }
-            
-            if (tempMailPage) {
-                logger.info('正在关闭临时邮箱页面...');
-                await tempMailPage.close().catch(err => logger.warn('关闭临时邮箱页面时出错:', err));
             }
             
             if (page) {
