@@ -75,20 +75,47 @@ class Cursor {
             }
 
             // 等待并点击登录按钮
-            const loginButtonSelector = 'a[href^="/api/auth/login"]';
-            await page.waitForSelector(loginButtonSelector);
-            await page.click(loginButtonSelector);
-            await page.waitForNavigation();
+            const loginButtonSelector = {
+                selector: 'a[href^="/api/auth/login"]',
+                description: '登录按钮'
+            };
+            await this.waitAndClick(page, loginButtonSelector, {
+                delayAfterSuccess: 1000 // 添加1秒延迟
+            });
+            
+            // 等待页面跳转 - 使用超时和备用方案
+            try {
+                await Promise.race([
+                    page.waitForNavigation({ timeout: 5000 }),
+                    // 备用方法
+                    (async () => {
+                        await delay(1000);
+                        // 检查是否已跳转到登录页面
+                        const emailInput = await page.$('input[type="email"]');
+                        if (emailInput) {
+                            logger.info('检测到邮箱输入框，认为导航已完成');
+                            return;
+                        }
+                    })()
+                ]);
+                logger.info('已完成登录按钮点击导航');
+            } catch (error) {
+                logger.warn('等待登录页面跳转超时，继续执行:', error.message);
+            }
+            
             logger.info('已点击登录按钮并等待页面跳转完成');
-
+            
             // 模拟浏览行为
             if (this.simulateHuman) {
                 await this.humanBehavior.simulateHumanBehavior(page);
             }
 
             // 等待邮箱输入框出现，使用更精确的选择器
-            const emailSelector = 'input[type="email"][name="email"]';
-            await page.waitForSelector(emailSelector, {
+            const emailSelector = {
+                selector: 'input[type="email"][name="email"]',
+                description: '邮箱输入框'
+            };
+            await page.waitForSelector(emailSelector.selector, {
                 visible: true,
                 timeout: 10000
             });
@@ -103,7 +130,7 @@ class Cursor {
             if (this.simulateHuman) {
                 await this.humanBehavior.simulateHumanTyping(page, emailSelector, account.email);
             } else {
-                await page.type(emailSelector, account.email);
+                await page.type(emailSelector.selector, account.email);
             }
             logger.info('已填写邮箱');
 
@@ -113,15 +140,35 @@ class Cursor {
             }
 
             // 点击继续按钮
-            const continueButtonSelector = 'button[type="submit"]';
-            await page.waitForSelector(continueButtonSelector);
-            await page.click(continueButtonSelector);
+            const continueButtonSelector = {
+                selector: 'button[type="submit"]',
+                description: '继续按钮'
+            };
+            await this.waitAndClick(page, continueButtonSelector, {
+                delayAfterSuccess: 2000 // 添加2秒延迟
+            });
             logger.info('已点击继续按钮');
 
-            // 等待页面跳转到密码输入页面
-            await page.waitForNavigation().catch(() => {
-                logger.info('页面可能没有跳转，继续执行');
-            });
+            // 等待页面跳转到密码输入页面 - 使用超时和备用方案
+            try {
+                // 设置较短的超时时间
+                await Promise.race([
+                    page.waitForNavigation({ timeout: 5000 }),
+                    // 备用检测方法：等待一段时间后检查页面状态
+                    (async () => {
+                        await delay(1000); // 等待3秒
+                        // 检查是否有密码输入框出现，这通常表示页面已跳转
+                        const passwordInput = await page.$('input[type="password"][name="password"]');
+                        if (passwordInput) {
+                            logger.info('检测到密码输入框，认为导航已完成');
+                            return;
+                        }
+                    })()
+                ]);
+                logger.info('页面已跳转到密码输入页面');
+            } catch (error) {
+                logger.warn('等待页面跳转超时，继续执行:', error.message);
+            }
 
             // 模拟浏览行为
             if (this.simulateHuman) {
@@ -129,11 +176,16 @@ class Cursor {
             }
             
             // 填写密码
-            const passwordSelector = 'input[type="password"][name="password"]';
+            const passwordSelector = {
+                selector: 'input[type="password"][name="password"]',
+                description: '密码输入框'
+            };
             if (this.simulateHuman) {
                 await this.humanBehavior.simulateHumanTyping(page, passwordSelector, account.password);
             } else {
-                await page.type(passwordSelector, account.password);
+                await this.waitAndFillField(page, passwordSelector, account.password, {
+                    delayAfterSuccess: 2000 // 添加2秒延迟
+                });
             }
             logger.info('已填写密码');
 
@@ -143,18 +195,45 @@ class Cursor {
             }
 
             // 点击登录按钮
-            const signInButtonSelector = 'button[type="submit"][name="intent"][value="password"]';
-            await page.waitForSelector(signInButtonSelector);
-            await page.click(signInButtonSelector);
+            const signInButtonSelector = {
+                selector: 'button[type="submit"][name="intent"][value="password"]',
+                description: '登录提交按钮'
+            };
+            await this.waitAndClick(page, signInButtonSelector, {
+                delayAfterSuccess: 2000 // 添加2秒延迟
+            });
             logger.info('已点击登录按钮');
 
-            // 等待登录完成
-            await page.waitForNavigation().catch(() => {
-                logger.info('页面可能没有跳转，继续执行');
-            });
-            logger.info('登录流程执行完成');
-
-            // 验证是否成功跳转到loginDeepControl页面
+            // 等待登录完成 - 使用超时和多种检测方式
+            try {
+                // 同时使用多种方式检测导航完成
+                await Promise.race([
+                    page.waitForNavigation({ timeout: 8000 }),
+                    // 备用方法：检测URL变化或特定元素出现
+                    (async () => {
+                        for (let i = 0; i < 10; i++) {
+                            await delay(800); // 每0.8秒检查一次
+                            // 检查URL是否包含settings
+                            const currentUrl = page.url();
+                            if (currentUrl.includes('settings')) {
+                                logger.info('URL已变为settings页面，导航完成');
+                                return;
+                            }
+                            // 检查是否有特定元素出现
+                            const dashboardElement = await page.$('.dashboard, .settings-page, .account-page');
+                            if (dashboardElement) {
+                                logger.info('检测到dashboard/settings元素，导航完成');
+                                return;
+                            }
+                        }
+                    })()
+                ]);
+                logger.info('登录完成，页面已跳转');
+            } catch (error) {
+                logger.warn('等待登录跳转超时，继续执行:', error.message);
+            }
+            
+            // 验证是否成功跳转到settings页面
             const currentUrl = page.url();
             if (!currentUrl.includes('settings')) {
                 logger.error('页面未跳转到settings页面');
@@ -231,10 +310,34 @@ class Cursor {
             }
 
             // 等待并点击登录按钮
-            const loginButtonSelector = 'a[href^="/api/auth/login"]';
-            await page.waitForSelector(loginButtonSelector);
-            await page.click(loginButtonSelector);
-            await page.waitForNavigation();
+            const loginButtonSelector = {
+                selector: 'a[href^="/api/auth/login"]',
+                description: '登录按钮'
+            };
+            await this.waitAndClick(page, loginButtonSelector, {
+                delayAfterSuccess: 1000 // 添加1秒延迟
+            });
+            
+            // 等待页面跳转 - 使用超时和备用方案
+            try {
+                await Promise.race([
+                    page.waitForNavigation({ timeout: 5000 }),
+                    // 备用方法
+                    (async () => {
+                        await delay(1000);
+                        // 检查是否已跳转到登录页面
+                        const emailInput = await page.$('input[type="email"]');
+                        if (emailInput) {
+                            logger.info('检测到邮箱输入框，认为导航已完成');
+                            return;
+                        }
+                    })()
+                ]);
+                logger.info('已完成登录按钮点击导航');
+            } catch (error) {
+                logger.warn('等待登录页面跳转超时，继续执行:', error.message);
+            }
+            
             logger.info('已点击登录按钮并等待页面跳转完成');
             
             // 模拟浏览行为
@@ -242,12 +345,36 @@ class Cursor {
                 await this.humanBehavior.simulateHumanBehavior(page);
             }
             
-            const signUpSelector = 'a[href^="/sign-up"]';
-            await page.waitForSelector(signUpSelector);
-            await page.click(signUpSelector);
-            await page.waitForNavigation();
+            const signUpSelector = {
+                selector: 'a[href^="/sign-up"]',
+                description: '注册链接'
+            };
+            await this.waitAndClick(page, signUpSelector, {
+                delayAfterSuccess: 1000 // 添加1秒延迟
+            });
+            
+            // 等待页面跳转 - 使用超时和备用方案
+            try {
+                await Promise.race([
+                    page.waitForNavigation({ timeout: 5000 }),
+                    // 备用方法
+                    (async () => {
+                        await delay(1000);
+                        // 检查是否已跳转到注册页面
+                        const nameInput = await page.$('input[name="first_name"], input[placeholder*="first name" i]');
+                        if (nameInput) {
+                            logger.info('检测到名字输入框，认为注册页面导航已完成');
+                            return;
+                        }
+                    })()
+                ]);
+                logger.info('已完成注册链接点击导航');
+            } catch (error) {
+                logger.warn('等待注册页面跳转超时，继续执行:', error.message);
+            }
+            
             logger.info('已点击注册链接并等待页面跳转完成');
-
+            
             // 模拟浏览行为
             if (this.simulateHuman) {
                 await this.humanBehavior.simulateHumanBehavior(page);
@@ -275,12 +402,12 @@ class Cursor {
             
             // 尝试不同的名字输入框选择器
             const firstNameSelectors = [
-                'input[name="first_name"][placeholder="Your first name"]',
-                'input[name="first_name"]',
-                'input[placeholder*="first name" i]',
-                'input[placeholder*="名字" i]',
-                'input[id*="first" i]',
-                'input[name*="first" i]'
+                { selector: 'input[name="first_name"][placeholder="Your first name"]', description: '名字输入框(带占位符)' },
+                { selector: 'input[name="first_name"]', description: '名字输入框' },
+                { selector: 'input[placeholder*="first name" i]', description: '包含first name的输入框' },
+                { selector: 'input[placeholder*="名字" i]', description: '包含名字的输入框' },
+                { selector: 'input[id*="first" i]', description: 'ID包含first的输入框' },
+                { selector: 'input[name*="first" i]', description: 'name属性包含first的输入框' }
             ];
             
             // 填写名字
@@ -289,21 +416,21 @@ class Cursor {
                 interval: 500,
                 failMessage: '无法找到名字输入框'
             });
-            
+
             if (!firstNameFilled) {
                 throw new Error('无法找到名字输入框，请检查页面结构是否变化');
             }
-            
+
             logger.info('已填写名字');
             
             // 尝试不同的姓氏输入框选择器
             const lastNameSelectors = [
-                'input[name="last_name"][placeholder="Your last name"]',
-                'input[name="last_name"]',
-                'input[placeholder*="last name" i]',
-                'input[placeholder*="姓氏" i]',
-                'input[id*="last" i]',
-                'input[name*="last" i]'
+                { selector: 'input[name="last_name"][placeholder="Your last name"]', description: '姓氏输入框(带占位符)' },
+                { selector: 'input[name="last_name"]', description: '姓氏输入框' },
+                { selector: 'input[placeholder*="last name" i]', description: '包含last name的输入框' },
+                { selector: 'input[placeholder*="姓氏" i]', description: '包含姓氏的输入框' },
+                { selector: 'input[id*="last" i]', description: 'ID包含last的输入框' },
+                { selector: 'input[name*="last" i]', description: 'name属性包含last的输入框' }
             ];
             
             // 填写姓氏
@@ -321,11 +448,11 @@ class Cursor {
             
             // 尝试不同的邮箱输入框选择器
             const emailSelectors = [
-                'input[type="email"][name="email"][placeholder="Your email address"]',
-                'input[type="email"][name="email"]',
-                'input[type="email"]',
-                'input[placeholder*="email" i]',
-                'input[name="email"]'
+                { selector: 'input[type="email"][name="email"][placeholder="Your email address"]', description: '邮箱输入框(带占位符)' },
+                { selector: 'input[type="email"][name="email"]', description: '邮箱输入框(带name)' },
+                { selector: 'input[type="email"]', description: '邮箱类型输入框' },
+                { selector: 'input[placeholder*="email" i]', description: '包含email的输入框' },
+                { selector: 'input[name="email"]', description: 'name为email的输入框' }
             ];
             
             // 填写邮箱
@@ -346,25 +473,24 @@ class Cursor {
                 await this.humanBehavior.simulateHumanBehavior(page, { duration: 2000, movements: 2 });
             }
             
-            // 尝试不同的继续按钮选择器
-            const continueButtonSelectors = [
-                'button[type="submit"][value="sign-up"]',
-                'button[type="submit"]',
-                'button:contains("Continue")',
-                'button:contains("Next")',
-                'button:contains("Sign up")',
-                'button.signup-button',
-                'button.continue-button'
+            // 尝试不同的注册表单提交按钮选择器
+            const continueToPasswordSelectors = [
+                { selector: 'button[type="submit"]', description: '提交按钮' },
+                { selector: 'button:contains("Continue")', description: 'Continue按钮' },
+                { selector: 'button:contains("Next")', description: 'Next按钮' },
+                { selector: 'button:contains("Sign up")', description: 'Sign up按钮' },
+                { selector: 'button.signup-button', description: 'signup-button类按钮' },
+                { selector: 'button.continue-button', description: 'continue-button类按钮' }
             ];
             
-            // 点击继续按钮
-            const continueClicked = await this.waitAndClick(page, continueButtonSelectors, {
+            // 点击继续按钮到密码页面
+            const continueToPasswordClicked = await this.waitAndClick(page, continueToPasswordSelectors, {
                 maxAttempts: 12,
                 interval: 500,
-                failMessage: '无法找到继续按钮'
+                failMessage: '无法找到继续到密码页面按钮'
             });
             
-            if (!continueClicked) {
+            if (!continueToPasswordClicked) {
                 // 尝试查找任何类型的按钮
                 const genericButtonClicked = await this.waitAndClick(page, 'button', {
                     maxAttempts: 5,
@@ -372,12 +498,12 @@ class Cursor {
                 });
                 
                 if (!genericButtonClicked) {
-                    throw new Error('无法找到继续按钮，请检查页面结构是否变化');
+                    throw new Error('无法找到继续到密码页面按钮，请检查页面结构是否变化');
                 }
                 logger.warn('使用通用按钮选择器点击成功');
             }
             
-            logger.info('已点击继续按钮');
+            logger.info('已点击继续到密码页面按钮');
             
             // 等待页面跳转、加载完成
             try {
@@ -416,11 +542,11 @@ class Cursor {
             
             // 尝试不同的密码输入框选择器
             const passwordSelectors = [
-                'input[type="password"]',
-                'input[name="password"]',
-                'input[placeholder*="password" i]',
-                'input[placeholder*="密码" i]',
-                'input[id*="password" i]'
+                { selector: 'input[type="password"]', description: '密码输入框' },
+                { selector: 'input[name="password"]', description: 'name为password的输入框' },
+                { selector: 'input[placeholder*="password" i]', description: '包含password的输入框' },
+                { selector: 'input[placeholder*="密码" i]', description: '包含密码的输入框' },
+                { selector: 'input[id*="password" i]', description: 'ID包含password的输入框' }
             ];
             
             // 填写密码
@@ -444,25 +570,25 @@ class Cursor {
                 await this.humanBehavior.simulateHumanBehavior(page, { duration: 2000, movements: 2 });
             }
             
-            // 尝试不同的注册按钮选择器
-            const registerButtonSelectors = [
-                'button[type="submit"]',
-                'button:contains("Register")',
-                'button:contains("Sign up")',
-                'button:contains("Complete")',
-                'button:contains("Create")',
-                'button.register-button',
-                'button.signup-button'
+            // 尝试不同的注册表单提交按钮选择器
+            const finalRegisterButtonSelectors = [
+                { selector: 'button[type="submit"]', description: '提交按钮' },
+                { selector: 'button:contains("Register")', description: 'Register按钮' },
+                { selector: 'button:contains("Sign up")', description: 'Sign up按钮' },
+                { selector: 'button:contains("Complete")', description: 'Complete按钮' },
+                { selector: 'button:contains("Create")', description: 'Create按钮' },
+                { selector: 'button.register-button', description: 'register-button类按钮' },
+                { selector: 'button.signup-button', description: 'signup-button类按钮' }
             ];
             
             // 点击注册按钮
-            const registerClicked = await this.waitAndClick(page, registerButtonSelectors, {
+            const finalRegisterClicked = await this.waitAndClick(page, finalRegisterButtonSelectors, {
                 maxAttempts: 12,
                 interval: 500,
                 failMessage: '无法找到注册按钮'
             });
             
-            if (!registerClicked) {
+            if (!finalRegisterClicked) {
                 // 尝试查找任何类型的按钮
                 const genericButtonClicked = await this.waitAndClick(page, 'button', {
                     maxAttempts: 5,
@@ -470,12 +596,12 @@ class Cursor {
                 });
                 
                 if (!genericButtonClicked) {
-                    throw new Error('无法找到注册按钮，请检查页面结构是否变化');
+                    throw new Error('无法找到最终注册按钮，请检查页面结构是否变化');
                 }
                 logger.warn('使用通用按钮选择器点击成功');
             }
             
-            logger.info('已点击注册按钮');
+            logger.info('已点击最终注册按钮');
             
             // 等待页面跳转
             try {
@@ -562,16 +688,16 @@ class Cursor {
             
             // 定义可能的验证码输入字段选择器
             const verificationSelectors = [
-                'input[placeholder*="code"]',
-                'input[placeholder*="Code"]',
-                'input[aria-label*="verification"]',
-                'input[aria-label*="Verification"]',
-                'input[type="text"][name*="code"]',
-                'input.verification-code-input',
-                'input[data-testid="verification-code-input"]',
-                'input[inputmode="numeric"]',
+                { selector: 'input[placeholder*="code"]', description: '包含code占位符的输入框' },
+                { selector: 'input[placeholder*="Code"]', description: '包含Code占位符的输入框' },
+                { selector: 'input[aria-label*="verification"]', description: 'aria-label包含verification的输入框' },
+                { selector: 'input[aria-label*="Verification"]', description: 'aria-label包含Verification的输入框' },
+                { selector: 'input[type="text"][name*="code"]', description: 'name包含code的文本输入框' },
+                { selector: 'input.verification-code-input', description: 'verification-code-input类输入框' },
+                { selector: 'input[data-testid="verification-code-input"]', description: '验证码专用输入框' },
+                { selector: 'input[inputmode="numeric"]', description: '数字输入模式输入框' },
                 // 更宽泛的选择器
-                'input[type="text"]'
+                { selector: 'input[type="text"]', description: '文本输入框' }
             ];
             
             // 获取页面上所有的输入字段，帮助调试
@@ -607,8 +733,8 @@ class Cursor {
                 
                 // 等待验证码输入框出现
                 const singleInputSelectors = [
-                    'input[inputmode="numeric"][maxlength="1"]',
-                    'input[maxlength="1"]'
+                    { selector: 'input[inputmode="numeric"][maxlength="1"]', description: '数字输入单字符框' },
+                    { selector: 'input[maxlength="1"]', description: '单字符输入框' }
                 ];
                 
                 // 寻找验证码输入框
@@ -1575,34 +1701,50 @@ class Cursor {
     /**
      * 填写表单字段 - 根据配置选择模拟人类行为或直接填写
      * @param {import('puppeteer').Page} page Puppeteer页面实例 
-     * @param {string} selector 元素选择器
+     * @param {string|Object} selector 元素选择器或包含selector和description的对象
      * @param {string} value 要填写的值
+     * @param {number} delayAfterSuccess 操作成功后的延迟时间(毫秒)，默认为0表示不延迟
      * @returns {Promise<boolean>} 是否成功填写
      */
-    async fillField(page, selector, value) {
+    async fillField(page, selector, value, delayAfterSuccess = 0) {
         try {
+            // 处理selector可能是对象的情况
+            let selectorStr = selector;
+            let description = selector;
+            
+            if (typeof selector === 'object' && selector !== null) {
+                selectorStr = selector.selector;
+                description = selector.description || selectorStr;
+            }
+            
             // 等待元素可见
-            await page.waitForSelector(selector, { visible: true, timeout: 5000 });
+            await page.waitForSelector(selectorStr, { visible: true, timeout: 5000 });
             
             if (this.simulateHuman) {
                 // 模拟人类行为填写
-                logger.info(`使用人类行为模拟填写字段: ${selector}`);
-                await this.humanBehavior.simulateHumanTyping(page, selector, value);
+                logger.info(`使用人类行为模拟填写字段: ${description}`);
+                await this.humanBehavior.simulateHumanTyping(page, selectorStr, value);
             } else {
                 // 直接填写
-                logger.info(`直接填写字段: ${selector}`);
+                logger.info(`直接填写字段: ${description}`);
                 
                 // 清除现有内容
-                await page.click(selector, { clickCount: 3 });
+                await page.click(selectorStr, { clickCount: 3 });
                 await page.keyboard.press('Backspace');
                 
                 // 直接输入完整内容
-                await page.type(selector, value);
+                await page.type(selectorStr, value);
+            }
+            
+            // 操作成功后添加延迟
+            if (delayAfterSuccess > 0) {
+                logger.info(`填写字段成功，延迟 ${delayAfterSuccess}ms`);
+                await delay(delayAfterSuccess);
             }
             
             return true;
         } catch (error) {
-            logger.error(`填写字段 ${selector} 失败:`, error.message);
+            logger.error(`填写字段 ${typeof selector === 'object' ? selector.description || selector.selector : selector} 失败:`, error.message);
             return false;
         }
     }
@@ -1610,23 +1752,33 @@ class Cursor {
     /**
      * 尝试使用多个选择器填写字段
      * @param {import('puppeteer').Page} page Puppeteer页面实例
-     * @param {string[]} selectors 选择器数组
+     * @param {Array<string|Object>} selectors 选择器数组或包含selector和description的对象数组
      * @param {string} value 要填写的值
+     * @param {number} delayAfterSuccess 操作成功后的延迟时间(毫秒)，默认为0表示不延迟
      * @returns {Promise<boolean>} 是否成功填写
      */
-    async fillFieldWithMultipleSelectors(page, selectors, value) {
+    async fillFieldWithMultipleSelectors(page, selectors, value, delayAfterSuccess = 0) {
         for (const selector of selectors) {
             try {
-                const elementExists = await page.$(selector);
+                let selectorStr = selector;
+                let description = selector;
+                
+                if (typeof selector === 'object' && selector !== null) {
+                    selectorStr = selector.selector;
+                    description = selector.description || selectorStr;
+                }
+                
+                const elementExists = await page.$(selectorStr);
                 if (elementExists) {
-                    const success = await this.fillField(page, selector, value);
+                    const success = await this.fillField(page, selector, value, delayAfterSuccess);
                     if (success) {
-                        logger.info(`使用选择器 "${selector}" 成功填写值`);
+                        logger.info(`使用选择器 "${description}" 成功填写值`);
                         return true;
                     }
                 }
             } catch (error) {
-                logger.debug(`使用选择器 "${selector}" 填写失败: ${error.message}`);
+                const description = typeof selector === 'object' ? selector.description || selector.selector : selector;
+                logger.debug(`使用选择器 "${description}" 填写失败: ${error.message}`);
             }
         }
         
@@ -1637,35 +1789,51 @@ class Cursor {
     /**
      * 点击按钮 - 根据配置选择是否添加人类行为延迟
      * @param {import('puppeteer').Page} page Puppeteer页面实例
-     * @param {string} selector 按钮选择器
+     * @param {string|Object} selector 按钮选择器或包含selector和description的对象
+     * @param {number} delayAfterSuccess 操作成功后的延迟时间(毫秒)，默认为0表示不延迟
      * @returns {Promise<boolean>} 是否成功点击
      */
-    async clickButton(page, selector) {
+    async clickButton(page, selector, delayAfterSuccess = 0) {
         try {
+            // 处理selector可能是对象的情况
+            let selectorStr = selector;
+            let description = selector;
+            
+            if (typeof selector === 'object' && selector !== null) {
+                selectorStr = selector.selector;
+                description = selector.description || selectorStr;
+            }
+            
             // 等待元素可见
-            await page.waitForSelector(selector, { visible: true, timeout: 5000 });
+            await page.waitForSelector(selectorStr, { visible: true, timeout: 5000 });
             
             if (this.simulateHuman) {
                 // 模拟人类行为点击
-                logger.info(`使用人类行为模拟点击按钮: ${selector}`);
+                logger.info(`使用人类行为模拟点击按钮: ${description}`);
                 
                 // 随机延迟
                 const clickDelay = this.humanBehavior.minDelay + Math.random() * (this.humanBehavior.maxDelay - this.humanBehavior.minDelay);
                 await delay(clickDelay);
                 
                 // 模拟鼠标悬停后点击
-                await page.hover(selector);
+                await page.hover(selectorStr);
                 await delay(300 + Math.random() * 500);
-                await page.click(selector);
+                await page.click(selectorStr);
             } else {
                 // 直接点击
-                logger.info(`直接点击按钮: ${selector}`);
-                await page.click(selector);
+                logger.info(`直接点击按钮: ${description}`);
+                await page.click(selectorStr);
+            }
+            
+            // 操作成功后添加延迟
+            if (delayAfterSuccess > 0) {
+                logger.info(`点击按钮成功，延迟 ${delayAfterSuccess}ms`);
+                await delay(delayAfterSuccess);
             }
             
             return true;
         } catch (error) {
-            logger.error(`点击按钮 ${selector} 失败:`, error.message);
+            logger.error(`点击按钮 ${typeof selector === 'object' ? selector.description || selector.selector : selector} 失败:`, error.message);
             return false;
         }
     }
@@ -1673,75 +1841,49 @@ class Cursor {
     /**
      * 尝试使用多个选择器点击按钮
      * @param {import('puppeteer').Page} page Puppeteer页面实例
-     * @param {string[]} selectors 选择器数组
+     * @param {Array<string|Object>} selectors 选择器数组或包含selector和description的对象数组
+     * @param {number} delayAfterSuccess 操作成功后的延迟时间(毫秒)，默认为0表示不延迟
      * @returns {Promise<boolean>} 是否成功点击
      */
-    async clickButtonWithMultipleSelectors(page, selectors) {
+    async clickButtonWithMultipleSelectors(page, selectors, delayAfterSuccess = 0) {
         for (const selector of selectors) {
             try {
-                const elementExists = await page.$(selector);
+                let selectorStr = selector;
+                let description = selector;
+                
+                if (typeof selector === 'object' && selector !== null) {
+                    selectorStr = selector.selector;
+                    description = selector.description || selectorStr;
+                }
+                
+                const elementExists = await page.$(selectorStr);
                 if (elementExists) {
-                    const success = await this.clickButton(page, selector);
+                    const success = await this.clickButton(page, selector, delayAfterSuccess);
                     if (success) {
-                        logger.info(`使用选择器 "${selector}" 成功点击按钮`);
+                        logger.info(`使用选择器 "${description}" 成功点击按钮`);
                         return true;
                     }
                 }
             } catch (error) {
-                logger.debug(`使用选择器 "${selector}" 点击失败: ${error.message}`);
+                const description = typeof selector === 'object' ? selector.description || selector.selector : selector;
+                logger.debug(`使用选择器 "${description}" 点击失败: ${error.message}`);
             }
         }
         
         logger.error('所有按钮选择器都无法匹配或点击失败');
         return false;
     }
-    
-    /**
-     * 初始化浏览器和页面
-     * @returns {Promise<{browser: Browser, page: Page}>} 浏览器和页面对象
-     */
-    async initBrowser() {
-        logger.info('正在初始化浏览器...');
-        const puppeteer = require('puppeteer');
-        
-        // 创建浏览器实例
-        const browser = await puppeteer.launch({
-            headless: false, // 默认有头模式以便于调试
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--disable-gpu',
-                '--window-size=1920,1080',
-            ]
-        });
-        
-        // 创建新页面
-        const page = await browser.newPage();
-        
-        // 设置视口大小
-        await page.setViewport({ width: 1920, height: 1080 });
-        
-        // 如果启用了人类行为模拟，设置用户代理
-        if (this.simulateHuman) {
-            await page.setUserAgent(this.humanBehavior.getRandomUserAgent());
-        }
-        
-        logger.info('浏览器初始化完成');
-        return { browser, page };
-    }
 
     /**
      * 智能等待元素出现
      * @param {import('puppeteer').Page} page Puppeteer页面实例
-     * @param {string|string[]} selectors 要等待的选择器或选择器数组
+     * @param {string|Object|Array<string|Object>} selectors 要等待的选择器或选择器数组
      * @param {Object} options 选项
      * @param {number} options.maxAttempts 最大尝试次数，默认10次
      * @param {number} options.interval 每次尝试的间隔时间(毫秒)，默认500ms
      * @param {boolean} options.visible 是否要求元素可见，默认true
      * @param {string} options.failMessage 失败时的消息
-     * @returns {Promise<{success: boolean, selector: string|null, element: ElementHandle|null}>} 成功状态和找到的元素
+     * @returns {Promise<{success: boolean, selector: string|Object|null, element: ElementHandle|null}>} 成功状态和找到的元素
      */
     async waitForElement(page, selectors, options = {}) {
         const {
@@ -1759,7 +1901,15 @@ class Cursor {
             return { success: false, selector: null, element: null };
         }
         
-        logger.info(`开始等待元素: [${selectorArray.join(', ')}]，最多尝试${maxAttempts}次`);
+        // 准备用于日志的描述列表
+        const descriptions = selectorArray.map(selector => {
+            if (typeof selector === 'object' && selector !== null) {
+                return selector.description || selector.selector;
+            }
+            return selector;
+        });
+        
+        logger.info(`开始等待元素: [${descriptions.join(', ')}]，最多尝试${maxAttempts}次`);
         
         let attempts = 0;
         while (attempts < maxAttempts) {
@@ -1768,8 +1918,16 @@ class Cursor {
             // 尝试每个选择器
             for (const selector of selectorArray) {
                 try {
+                    let selectorStr = selector;
+                    let description = selector;
+                    
+                    if (typeof selector === 'object' && selector !== null) {
+                        selectorStr = selector.selector;
+                        description = selector.description || selectorStr;
+                    }
+                    
                     // 检查元素是否存在
-                    const element = await page.$(selector);
+                    const element = await page.$(selectorStr);
                     
                     if (element) {
                         // 如果要求元素可见，检查元素是否可见
@@ -1785,12 +1943,12 @@ class Cursor {
                             }, element);
                             
                             if (isVisible) {
-                                logger.info(`第${attempts}次尝试: 找到可见元素 "${selector}"`);
+                                logger.info(`第${attempts}次尝试: 找到可见元素 "${description}"`);
                                 return { success: true, selector, element };
                             }
                         } else {
                             // 不要求可见，元素存在即可
-                            logger.info(`第${attempts}次尝试: 找到元素 "${selector}"`);
+                            logger.info(`第${attempts}次尝试: 找到元素 "${description}"`);
                             return { success: true, selector, element };
                         }
                     }
@@ -1814,15 +1972,19 @@ class Cursor {
     /**
      * 智能等待并填写表单字段
      * @param {import('puppeteer').Page} page Puppeteer页面实例
-     * @param {string|string[]} selectors 选择器或选择器数组
+     * @param {string|Object|Array<string|Object>} selectors 选择器或选择器数组
      * @param {string} value 要填写的值
      * @param {Object} options 等待选项
+     * @param {number} options.delayAfterSuccess 操作成功后的延迟时间(毫秒)，默认1000ms
      * @returns {Promise<boolean>} 是否成功填写
      */
     async waitAndFillField(page, selectors, value, options = {}) {
+        // 解构出操作成功后的延迟时间，默认为1000毫秒（1秒）
+        const { delayAfterSuccess = 1000, ...waitOptions } = options;
+        
         // 等待元素出现
         const result = await this.waitForElement(page, selectors, {
-            ...options,
+            ...waitOptions,
             failMessage: '找不到输入字段'
         });
         
@@ -1833,21 +1995,34 @@ class Cursor {
         try {
             // 获取成功的选择器
             const selector = result.selector;
+            let selectorStr = selector;
+            let description = selector;
+            
+            if (typeof selector === 'object' && selector !== null) {
+                selectorStr = selector.selector;
+                description = selector.description || selectorStr;
+            }
             
             if (this.simulateHuman) {
                 // 模拟人类行为填写
-                logger.info(`使用人类行为模拟填写字段: ${selector}`);
-                await this.humanBehavior.simulateHumanTyping(page, selector, value);
+                logger.info(`使用人类行为模拟填写字段: ${description}`);
+                await this.humanBehavior.simulateHumanTyping(page, selectorStr, value);
             } else {
                 // 直接填写
-                logger.info(`直接填写字段: ${selector}`);
+                logger.info(`直接填写字段: ${description}`);
                 
                 // 清除现有内容
-                await page.click(selector, { clickCount: 3 });
+                await page.click(selectorStr, { clickCount: 3 });
                 await page.keyboard.press('Backspace');
                 
                 // 直接输入完整内容
-                await page.type(selector, value);
+                await page.type(selectorStr, value);
+            }
+            
+            // 操作成功后添加延迟
+            if (delayAfterSuccess > 0) {
+                logger.info(`填写字段成功，延迟 ${delayAfterSuccess}ms`);
+                await delay(delayAfterSuccess);
             }
             
             return true;
@@ -1860,14 +2035,18 @@ class Cursor {
     /**
      * 智能等待并点击元素
      * @param {import('puppeteer').Page} page Puppeteer页面实例
-     * @param {string|string[]} selectors 选择器或选择器数组
+     * @param {string|Object|Array<string|Object>} selectors 选择器或选择器数组
      * @param {Object} options 等待选项
+     * @param {number} options.delayAfterSuccess 操作成功后的延迟时间(毫秒)，默认1000ms
      * @returns {Promise<boolean>} 是否成功点击
      */
     async waitAndClick(page, selectors, options = {}) {
+        // 解构出操作成功后的延迟时间，默认为1000毫秒（1秒）
+        const { delayAfterSuccess = 1000, ...waitOptions } = options;
+        
         // 等待元素出现
         const result = await this.waitForElement(page, selectors, {
-            ...options,
+            ...waitOptions,
             failMessage: '找不到可点击元素'
         });
         
@@ -1878,23 +2057,36 @@ class Cursor {
         try {
             // 获取成功的选择器
             const selector = result.selector;
+            let selectorStr = selector;
+            let description = selector;
+            
+            if (typeof selector === 'object' && selector !== null) {
+                selectorStr = selector.selector;
+                description = selector.description || selectorStr;
+            }
             
             if (this.simulateHuman) {
                 // 模拟人类行为点击
-                logger.info(`使用人类行为模拟点击元素: ${selector}`);
+                logger.info(`使用人类行为模拟点击元素: ${description}`);
                 
                 // 随机延迟
                 const clickDelay = this.humanBehavior.minDelay + Math.random() * (this.humanBehavior.maxDelay - this.humanBehavior.minDelay);
                 await delay(clickDelay);
                 
                 // 模拟鼠标悬停后点击
-                await page.hover(selector);
+                await page.hover(selectorStr);
                 await delay(300 + Math.random() * 500);
-                await page.click(selector);
+                await page.click(selectorStr);
             } else {
                 // 直接点击
-                logger.info(`直接点击元素: ${selector}`);
-                await page.click(selector);
+                logger.info(`直接点击元素: ${description}`);
+                await page.click(selectorStr);
+            }
+            
+            // 操作成功后添加延迟
+            if (delayAfterSuccess > 0) {
+                logger.info(`点击元素成功，延迟 ${delayAfterSuccess}ms`);
+                await delay(delayAfterSuccess);
             }
             
             return true;

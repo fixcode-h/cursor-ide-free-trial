@@ -229,21 +229,30 @@ class HumanBehavior {
     /**
      * 模拟人类输入文本
      * @param {import('puppeteer').Page} page Puppeteer页面实例
-     * @param {string} selector 输入框选择器
+     * @param {string|Object} selector 输入框选择器或包含selector和description的对象
      * @param {string} text 要输入的文本
      */
     async simulateHumanTyping(page, selector, text) {
         try {
+            // 处理selector可能是对象的情况
+            let selectorStr = selector;
+            let description = selector;
+            
+            if (typeof selector === 'object' && selector !== null) {
+                selectorStr = selector.selector;
+                description = selector.description || selectorStr;
+            }
+            
             // 等待元素可见
-            await page.waitForSelector(selector);
+            await page.waitForSelector(selectorStr);
             
             // 先点击输入框，模拟用户行为
-            await page.click(selector);
+            await page.click(selectorStr);
             await delay(this.#getRandomInt(300, 800));
 
             // 逐个字符输入
             for (const char of text.split('')) {
-                await page.type(selector, char, {
+                await page.type(selectorStr, char, {
                     delay: this.#getRandomInt(this.typeMinDelay, this.typeMaxDelay)
                 });
 
@@ -255,9 +264,9 @@ class HumanBehavior {
 
             // 输入完成后的短暂停顿
             await delay(this.#getRandomInt(200, 500));
-            logger.debug(`已模拟人工输入文本到 ${selector}`);
+            logger.debug(`已模拟人工输入文本到 ${description}`);
         } catch (error) {
-            logger.error('模拟人类输入文本时出错:', error);
+            logger.error(`模拟人类输入文本时出错 (${typeof selector === 'object' ? selector.description || selector.selector : selector}):`, error);
             throw error;
         }
     }

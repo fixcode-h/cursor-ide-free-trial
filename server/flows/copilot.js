@@ -71,18 +71,21 @@ class Copilot {
             const continueButtonSelector = 'button[data-continue-to="password-container"]';
             await page.waitForSelector(continueButtonSelector);
             await page.click(continueButtonSelector);
+            await delay(2000);
             logger.info('已点击继续按钮');
 
             // 等待密码输入框出现
             const passwordSelector = '#password';
             await page.waitForSelector(passwordSelector);
             await page.type(passwordSelector, userInfo.password.toString().trim());
+            await delay(2000);
             logger.info('已填写密码');
 
             // 点击继续按钮
             const passwordContinueSelector = 'button[data-continue-to="username-container"]';
             await page.waitForSelector(passwordContinueSelector);
             await page.click(passwordContinueSelector);
+            await delay(2000);
             logger.info('已点击继续按钮');
 
             // 填写用户名
