@@ -26,13 +26,14 @@ class Cursor {
         this.humanBehavior = new HumanBehavior();
         
         // 人类行为模拟配置
-        const enabled = config.human_behavior?.enabled;
-        this.simulateHuman = enabled !== undefined ? enabled : true; // 默认启用
+        const browserConfig = config.browser || {};
+        const humanBehaviorConfig = browserConfig.human_behavior || {};
+        this.simulateHuman = humanBehaviorConfig.enabled !== undefined ? humanBehaviorConfig.enabled : false; // 默认禁用
         
         logger.info(`人类行为模拟状态: ${this.simulateHuman ? '已启用' : '已禁用'}`);
         
         // 将配置传递给人类行为模拟器
-        this.humanBehavior.updateFromConfig(config);
+        this.humanBehavior.updateFromConfig(config.browser || {});
         
         // 代理配置
         this.proxyConfig = config.proxy;
@@ -1123,12 +1124,17 @@ class Cursor {
         logger.info('开始获取 Cursor session token...');
 
         if (sessionCookie) {
-            const tokenValue = decodeURIComponent(sessionCookie).split('::')[1];
-            logger.info('成功获取 Cursor session token');
-            return tokenValue;
+            try {
+                const tokenValue = decodeURIComponent(sessionCookie).split('::')[1];
+                logger.info('成功获取 Cursor session token');
+                return tokenValue;
+            } catch (error) {
+                logger.error('获取 session token 失败:', error);
+                return null;
+            }
         }
 
-        logger.error('获取 cookie 失败:', error);
+        logger.error('获取 session token 失败: session cookie 为空');
         return null;
     }
 

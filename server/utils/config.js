@@ -52,7 +52,7 @@ const defaultConfig = {
         fingerprintRandom: false, // 是否随机指纹浏览器种子
         fingerprintSeed: '', // 固定指纹浏览器种子
         human_behavior: {
-            enabled: true, // 是否启用人类行为模拟
+            enabled: false, // 是否启用人类行为模拟
             typingSpeed: {
                 min: 50, // 最小打字延迟（毫秒）
                 max: 200 // 最大打字延迟（毫秒）
