@@ -205,12 +205,124 @@ function buildServer() {
     // Copy node_modules
     const nodeModulesPath = path.join(sourceDir, 'node_modules');
     if (fs.existsSync(nodeModulesPath)) {
-        fs.cpSync(nodeModulesPath, path.join(distServerDir, 'node_modules'), { recursive: true });
+        console.log('Copying server node_modules...');
+        try {
+            const nodeModulesTargetPath = path.join(distServerDir, 'node_modules');
+            // 确保目标目录存在
+            if (!fs.existsSync(nodeModulesTargetPath)) {
+                fs.mkdirSync(nodeModulesTargetPath, { recursive: true });
+            }
+            // 使用同步方式复制目录
+            fs.cpSync(nodeModulesPath, nodeModulesTargetPath, { 
+                recursive: true,
+                force: true 
+            });
+            console.log(`Successfully copied node_modules to: ${nodeModulesTargetPath}`);
+        } catch (error) {
+            console.error('Failed to copy node_modules:', error);
+            throw error;
+        }
+    } else {
+        console.warn('Server node_modules directory not found!');
+        console.warn('Installing server dependencies...');
+        
+        try {
+            // 创建一个临时的package.json以便安装依赖
+            const pkgPath = path.join(sourceDir, 'package.json');
+            if (fs.existsSync(pkgPath)) {
+                const pkgContent = fs.readFileSync(pkgPath, 'utf8');
+                fs.writeFileSync(path.join(distServerDir, 'package.json'), pkgContent);
+                
+                // 执行npm install
+                console.log('Running npm install in server directory...');
+                execSync('npm install --production', {
+                    cwd: distServerDir,
+                    stdio: 'inherit'
+                });
+                console.log('Server dependencies installed successfully');
+            } else {
+                console.error('Server package.json not found, cannot install dependencies!');
+            }
+        } catch (error) {
+            console.error('Failed to install server dependencies:', error);
+        }
     }
+}
+
+function validateServerDependencies() {
+    console.log('Validating server dependencies...');
+    const distServerNodeModules = path.join(process.cwd(), 'dist_server', 'node_modules');
+    
+    if (!fs.existsSync(distServerNodeModules)) {
+        console.error('Error: Server node_modules directory does not exist!');
+        return false;
+    }
+    
+    // 检查关键依赖
+    const criticalDependencies = ['express', 'ejs'];
+    let allDependenciesFound = true;
+    
+    criticalDependencies.forEach(dep => {
+        const depPath = path.join(distServerNodeModules, dep);
+        if (fs.existsSync(depPath)) {
+            console.log(`✓ Found dependency: ${dep}`);
+        } else {
+            console.error(`✗ Missing dependency: ${dep}`);
+            allDependenciesFound = false;
+        }
+    });
+    
+    if (!allDependenciesFound) {
+        console.warn('Warning: Some critical dependencies are missing. The application may not work correctly.');
+    } else {
+        console.log('All critical dependencies are present.');
+    }
+    
+    return allDependenciesFound;
 }
 
 function buildElectronApp() {
     console.log(`Building Electron app (${buildType === 'dir' ? 'unpacked' : 'portable'})...`);
+    
+    // 在构建Electron应用之前，再次确认node_modules存在
+    const distServerNodeModules = path.join(process.cwd(), 'dist_server', 'node_modules');
+    if (!fs.existsSync(distServerNodeModules)) {
+        console.error('Error: Server node_modules directory does not exist! Attempting to install...');
+        
+        try {
+            const serverDir = path.join(process.cwd(), 'server');
+            const distServerDir = path.join(process.cwd(), 'dist_server');
+            
+            // 确保package.json存在
+            if (fs.existsSync(path.join(serverDir, 'package.json'))) {
+                console.log('Installing server dependencies...');
+                
+                // 复制package.json到dist_server目录
+                fs.copyFileSync(
+                    path.join(serverDir, 'package.json'),
+                    path.join(distServerDir, 'package.json')
+                );
+                
+                // 在dist_server目录中运行npm install
+                execSync('npm install --production', {
+                    cwd: distServerDir,
+                    stdio: 'inherit'
+                });
+                
+                if (fs.existsSync(distServerNodeModules)) {
+                    console.log('Successfully installed server dependencies.');
+                } else {
+                    console.error('Failed to install server dependencies. Build may not work correctly.');
+                }
+            } else {
+                console.error('Server package.json not found. Cannot install dependencies.');
+            }
+        } catch (error) {
+            console.error('Error installing server dependencies:', error);
+        }
+    } else {
+        console.log('Server node_modules directory exists, proceeding with build.');
+    }
     
     // Get the electron-builder command based on platform and build type
     const builderCmd = `electron-builder ${buildType === 'dir' ? '--dir' : ''} --${currentPlatform === 'win32' ? 'win' : currentPlatform === 'darwin' ? 'mac' : 'linux'}`;
@@ -273,10 +385,26 @@ buildPublic();
 // Step 3: Build server
 buildServer();
 
-// Step 4: Build Electron app
+// Step 4: Ensure views directory is copied
+console.log('Checking views directory...');
+const viewsSourceDir = path.join(process.cwd(), 'views');
+if (fs.existsSync(viewsSourceDir)) {
+    console.log('Views directory found, ensuring it will be included in the build');
+    const viewsFiles = fs.readdirSync(viewsSourceDir);
+    console.log(`Found ${viewsFiles.length} files in views directory: ${viewsFiles.join(', ')}`);
+} else {
+    console.error('Views directory not found! The application UI will not work properly.');
+    process.exit(1);
+}
+
+// Step 5: Validate server dependencies
+console.log('Validating server dependencies...');
+validateServerDependencies();
+
+// Step 6: Build Electron app
 buildElectronApp();
 
-// Step 5: Cleanup build directories
+// Step 7: Cleanup build directories
 cleanupBuildDirs();
 
 console.log('Build completed successfully!'); 

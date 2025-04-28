@@ -45,6 +45,14 @@
         "from": "dist_server",
         "to": "server",
         "filter": [
+          "**/*",
+          "!**/node_modules/.bin/**/*"
+        ]
+      },
+      {
+        "from": "dist_server/node_modules",
+        "to": "server/node_modules",
+        "filter": [
           "**/*"
         ]
       },
